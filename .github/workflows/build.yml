@@ -42,7 +42,6 @@ jobs:
     runs-on: windows-latest
     env:
       TRIPLE: x86_64-pc-windows-msvc
-      FFMPEG_ZIP: https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-win64-lgpl-7.1.zip
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -74,8 +73,16 @@ jobs:
 
       - name: Fetch FFmpeg (LGPL build)
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          curl -fsSL "$FFMPEG_ZIP" -o ffmpeg.zip
+          # BtbN renames assets on each FFmpeg release, so pick the newest
+          # stable LGPL win64 build from the current list instead of a fixed URL.
+          NAME=$(gh release view latest -R BtbN/FFmpeg-Builds --json assets -q '.assets[].name' \
+            | grep -E '^ffmpeg-n[0-9.]+-latest-win64-lgpl-[0-9.]+\.zip$' | sort -V | tail -1)
+          [ -n "$NAME" ] || { echo "no LGPL win64 build found"; exit 1; }
+          echo "Using $NAME"
+          gh release download latest -R BtbN/FFmpeg-Builds -p "$NAME" -O ffmpeg.zip
           7z x ffmpeg.zip -offmpeg >/dev/null
           BIN=$(dirname "$(find ffmpeg -name ffmpeg.exe | head -1)")
           cp "$BIN/ffmpeg.exe" desktop/src-tauri/binaries/ffmpeg-$TRIPLE.exe
