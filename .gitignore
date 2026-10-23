@@ -1,0 +1,9 @@
+node_modules/
+web/dist/
+server/internal/webui/dist/*
+!server/internal/webui/dist/index.html
+desktop/src-tauri/target/
+desktop/src-tauri/binaries/
+desktop/src-tauri/gen/
+*.exe
+.DS_Store
