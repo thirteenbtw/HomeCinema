@@ -57,6 +57,16 @@ export type TorrentSettings = {
   autoImport: boolean; acceptedRisk: boolean;
 };
 export type SearchResult = { indexer: string; title: string; link: string; size: number; seeds: number; peers: number; quality: string; lang: string; date: string; score: number; best: boolean };
+export type CatalogItem = {
+  kind: 'movie' | 'tv'; id: number; title: string; origTitle: string; year: number; poster: string; backdrop: string;
+  overview: string; rating: number; votes: number; genreIds: number[];
+};
+export type CatalogPage = { items: CatalogItem[]; page: number; pages: number };
+export type CatalogTitle = CatalogItem & {
+  genres: string[]; runtime: number; tagline: string; cert: string; imdbId: string; countries: string[] | null;
+  seasons?: { number: number; name: string; episodes: number; year: number }[];
+  cast: CastMember[]; related: CatalogItem[];
+};
 export type Indexer = { name: string; url: string; apiKey: string; on: boolean };
 export type SearchPrefs = { quality: string; language: string; maxSizeGB: number; minSeeds: number };
 export type Caps = { video: string[]; audio: string[]; container: string[]; maxHeight: number; hdr: boolean };

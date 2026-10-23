@@ -53,6 +53,7 @@ export function Shell() {
           <Nav to="/" icon="home" label={t('home')} end />
           <Nav to="/library/movies" icon="film" label={t('movies')} />
           <Nav to="/library/shows" icon="tv" label={t('shows')} />
+          <Nav to="/catalog" icon="compass" label={t('catalog')} />
           <div aria-hidden="true" className="nav-extra" style={{ width: 24, height: 1, background: 'var(--line)', margin: '8px 0' }} />
           <Nav to="/torrents" icon="download" label={active ? `${t('torrents')}, ${active} ${tr('активных', 'active')}` : t('torrents')} dot={active > 0} />
           <Nav to="/devices" icon="cast" label={t('devices')} />

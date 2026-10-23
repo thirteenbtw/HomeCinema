@@ -39,10 +39,10 @@ export default function Torrents() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [risk, setRisk] = useState<null | (() => void)>(null);
-  const [sel, setSel] = useState<string | null>(null);
+  const [sel, setSel] = useState<string | null>(params.get('sel'));
   const [drag, setDrag] = useState(false);
   const [confirmDel, setConfirmDel] = useState<TorrentInfo | null>(null);
-  const [open, setOpen] = useState<string | null>(null);
+  const [open, setOpen] = useState<string | null>(params.get('sel'));
   const fileInput = useRef<HTMLInputElement>(null);
   const items = ov?.items || [];
 

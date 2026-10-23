@@ -5,6 +5,8 @@ import Home from './pages/Home';
 import Library from './pages/Library';
 import Search from './pages/Search';
 import { MoviePage, ShowPage } from './pages/Movie';
+import Catalog from './pages/Catalog';
+import CatalogTitlePage from './pages/CatalogTitle';
 import Player from './pages/Player';
 import Torrents from './pages/Torrents';
 import Devices from './pages/Devices';
@@ -24,6 +26,8 @@ function Gate() {
         <Route index element={<Home />} />
         <Route path="library/:kind" element={<Library />} />
         <Route path="search" element={<Search />} />
+        <Route path="catalog" element={<Catalog />} />
+        <Route path="catalog/:kind/:id" element={<CatalogTitlePage />} />
         <Route path="movie/:id" element={<MoviePage />} />
         <Route path="show/:id" element={<ShowPage />} />
         <Route path="play/torrent/:hash" element={<Player />} />

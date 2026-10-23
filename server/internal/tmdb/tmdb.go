@@ -21,8 +21,8 @@ import (
 	"github.com/thirteenbtw/homecinema/server/internal/store"
 )
 
-const apiBase = "https://api.themoviedb.org/3"
-const imgBase = "https://image.tmdb.org/t/p/"
+var apiBase = "https://api.themoviedb.org/3"
+var imgBase = "https://image.tmdb.org/t/p/"
 
 var ErrNoKey = errors.New("TMDB key is not set")
 
