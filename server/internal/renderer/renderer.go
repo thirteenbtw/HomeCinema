@@ -48,6 +48,13 @@ type LoadRequest struct {
 	Transcode   string  // human-readable transcode summary for the remote
 	AudioLabel  string
 	SubLabel    string
+	// What was loaded, so the remote can switch tracks or hand playback back to the PC.
+	FileID      int64
+	Torrent     string
+	TorrentFile int
+	Encoder     string
+	Audio       int
+	Sub         int
 }
 
 type Status struct {
@@ -63,6 +70,12 @@ type Status struct {
 	Transcode  string  `json:"transcode"`
 	AudioLabel string  `json:"audioLabel"`
 	SubLabel   string  `json:"subLabel"`
+	FileID     int64   `json:"fileId"`
+	Torrent    string  `json:"torrent,omitempty"`
+	File       int     `json:"file"`
+	Encoder    string  `json:"encoder,omitempty"`
+	Audio      int     `json:"audio"`
+	Sub        int     `json:"sub"`
 	Error      string  `json:"error,omitempty"`
 }
 
@@ -380,6 +393,7 @@ func (m *Manager) Statuses() []Status {
 		if req != nil {
 			st.Position += req.Offset
 			st.ItemID, st.Title, st.Transcode, st.AudioLabel, st.SubLabel = req.ItemID, req.Title, req.Transcode, req.AudioLabel, req.SubLabel
+			st.FileID, st.Torrent, st.File, st.Encoder, st.Audio, st.Sub = req.FileID, req.Torrent, req.TorrentFile, req.Encoder, req.Audio, req.Sub
 			if req.Duration > 0 {
 				st.Duration = req.Duration // HLS event playlists report a growing duration
 			}

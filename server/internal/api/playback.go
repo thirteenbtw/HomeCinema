@@ -51,7 +51,7 @@ type decision struct {
 
 func (s *Server) decide(f *store.File, audio *store.Track, caps renderer.Caps, quality string, firstAudio bool) decision {
 	d := decision{}
-	target := map[string]int{"1080p": 1080, "720p": 720}[quality]
+	target := map[string]int{"1080p": 1080, "720p": 720, "480p": 480}[quality]
 	downscale := target > 0 && f.Height > target+40
 	vOK := caps.Has(caps.Video, f.VideoCodec) && !(f.VideoCodec == "h264" && f.BitDepth > 8) &&
 		(f.HDR == "" || caps.HDR) && f.Height <= caps.MaxHeight+40 && !downscale

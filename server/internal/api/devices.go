@@ -136,19 +136,21 @@ func (s *Server) castLoad(w http.ResponseWriter, r *http.Request) error {
 		ctype = "video/webm"
 	}
 	audioLabel, subLabel := "", "выкл."
+	audioIdx, subIdx := -1, -1
 	for _, a := range pb.Audio {
 		if a.Selected {
-			audioLabel = a.Label
+			audioLabel, audioIdx = a.Label, a.Index
 		}
 	}
 	for _, t := range pb.Subs {
 		if t.Selected {
-			subLabel = t.Label + " (вжечь)"
+			subLabel, subIdx = t.Label+" (вжечь)", t.Index
 		}
 	}
 	err = s.Cast.Load(r.Context(), devID, renderer.LoadRequest{
 		URL: url, ContentType: ctype, Title: title, Start: start, ItemID: itemID, ProfileID: pid, Duration: pb.Duration,
 		Offset: pb.Offset, Transcode: pb.Summary, AudioLabel: audioLabel, SubLabel: subLabel,
+		FileID: b.FileID, Torrent: b.Torrent, TorrentFile: b.File, Encoder: pb.Encoder, Audio: audioIdx, Sub: subIdx,
 	})
 	if err != nil {
 		return httpError{http.StatusBadGateway, err.Error()}

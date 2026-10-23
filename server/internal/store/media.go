@@ -406,7 +406,17 @@ func (s *Store) queryItems(profile int64, where string, order string, limit int,
 		it.Cast = nil
 		out = append(out, it)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	rows.Close()
+	// Lists are small (one page, one season); the UI needs file ids to play.
+	for i := range out {
+		if out[i].Files, err = s.Files(out[i].ID); err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
 }
 
 func (s *Store) Item(profile, id int64) (*Item, error) {

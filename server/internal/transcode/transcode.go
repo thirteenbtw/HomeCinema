@@ -302,7 +302,7 @@ func (m *Manager) buildArgs(o Options, dir string) []string {
 		if o.Tonemap {
 			vf = append(vf, "zscale=t=linear:npl=100", "format=gbrpf32le", "zscale=p=bt709", "tonemap=tonemap=hable:desat=0", "zscale=t=bt709:m=bt709:r=tv")
 		}
-		target := map[string]int{"1080p": 1080, "720p": 720}[o.Quality]
+		target := map[string]int{"1080p": 1080, "720p": 720, "480p": 480}[o.Quality]
 		if target > 0 && (o.Height == 0 || o.Height > target) {
 			vf = append(vf, fmt.Sprintf("scale=-2:%d", target))
 		}
@@ -314,7 +314,7 @@ func (m *Manager) buildArgs(o Options, dir string) []string {
 			vf = append(vf, "format=nv12", "hwupload")
 		}
 		args = append(args, "-vf", strings.Join(vf, ","))
-		bitrate := map[string]string{"1080p": "8M", "720p": "4M"}[o.Quality]
+		bitrate := map[string]string{"1080p": "8M", "720p": "4M", "480p": "2M"}[o.Quality]
 		if bitrate == "" {
 			bitrate = "12M"
 		}
