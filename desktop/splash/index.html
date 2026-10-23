@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>HomeCinema</title>
+<style>
+  html,body{margin:0;height:100%;background:#0E0F12;color:#ECEDEF;font:500 14px system-ui,'Segoe UI',sans-serif}
+  body{display:grid;place-items:center}
+  .b{display:flex;flex-direction:column;align-items:center;gap:18px}
+  .l{width:56px;height:56px;border-radius:16px;background:#C8232D;display:grid;place-items:center}
+  .s{width:22px;height:22px;border-radius:50%;border:2px solid #33363D;border-top-color:#C8232D;animation:r .8s linear infinite}
+  @keyframes r{to{transform:rotate(360deg)}}
+  #e{max-width:420px;text-align:center;color:#FF8A90;display:none}
+</style>
+</head>
+<body>
+<div class="b">
+  <div class="l"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M8 5l11 7-11 7z" fill="#fff"/></svg></div>
+  <div class="s"></div>
+  <div>Запускаем медиасервер…</div>
+  <div id="e"></div>
+</div>
+<script>
+  // The shell navigates this window to the local server once it is ready.
+  window.addEventListener('hc-error', (e) => { const el = document.getElementById('e'); el.textContent = e.detail; el.style.display = 'block'; });
+</script>
+</body>
+</html>

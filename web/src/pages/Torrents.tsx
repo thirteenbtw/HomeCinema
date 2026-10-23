@@ -34,7 +34,8 @@ export default function Torrents() {
   const nav = useNavigate();
   const [params, setParams] = useSearchParams();
   const tab = (params.get('tab') as Tab) || 'active';
-  const [magnet, setMagnet] = useState('');
+  // A magnet link opened from the browser arrives here via the desktop shell.
+  const [magnet, setMagnet] = useState(params.get('magnet') || '');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [risk, setRisk] = useState<null | (() => void)>(null);

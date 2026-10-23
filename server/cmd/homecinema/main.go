@@ -34,6 +34,13 @@ var version = "0.1.0-dev"
 
 func main() {
 	cfg := config.Load()
+	if cfg.ExitOnStdin {
+		// The desktop shell holds our stdin; if it dies, so do we.
+		go func() {
+			_, _ = io.Copy(io.Discard, os.Stdin)
+			os.Exit(0)
+		}()
+	}
 	setupLog(cfg.DataDir)
 	log.Printf("HomeCinema %s, data in %s", version, cfg.DataDir)
 

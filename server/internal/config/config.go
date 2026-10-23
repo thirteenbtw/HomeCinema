@@ -9,13 +9,14 @@ import (
 )
 
 type Config struct {
-	DataDir   string // SQLite DB, metadata cache, logs
-	CacheDir  string // transcode segments, torrent stream cache
-	Listen    string // HTTP listen address
-	FFmpeg    string // path to ffmpeg binary
-	FFprobe   string // path to ffprobe binary
-	Dev       bool   // allow CORS from the Vite dev server
-	OpenUIURL bool
+	DataDir     string // SQLite DB, metadata cache, logs
+	CacheDir    string // transcode segments, torrent stream cache
+	Listen      string // HTTP listen address
+	FFmpeg      string // path to ffmpeg binary
+	FFprobe     string // path to ffprobe binary
+	ExitOnStdin bool
+	Dev         bool // allow CORS from the Vite dev server
+	OpenUIURL   bool
 }
 
 func Load() Config {
@@ -25,6 +26,7 @@ func Load() Config {
 	flag.StringVar(&c.FFmpeg, "ffmpeg", "", "path to ffmpeg (default: next to the binary, then PATH)")
 	flag.StringVar(&c.FFprobe, "ffprobe", "", "path to ffprobe (default: next to the binary, then PATH)")
 	flag.BoolVar(&c.Dev, "dev", false, "development mode (CORS for the Vite dev server)")
+	flag.BoolVar(&c.ExitOnStdin, "exit-on-stdin-close", false, "exit when stdin closes (used by the desktop shell)")
 	flag.Parse()
 
 	c.CacheDir = filepath.Join(c.DataDir, "cache")
