@@ -60,6 +60,9 @@ func main() {
 	tm := tmdb.New(filepath.Join(cfg.DataDir, "images"),
 		func() string { return st.Setting("tmdbKey", "") },
 		func() string { return st.Setting("metaLang", "ru-RU") })
+	tm.Mirror = func() tmdb.Mirror {
+		return tmdb.Mirror{API: st.Setting("tmdbApi", ""), Image: st.Setting("tmdbImg", "")}
+	}
 	scanner := library.New(st, prober, tm, bus)
 
 	trans := transcode.New(cfg.FFmpeg, cfg.CacheDir)

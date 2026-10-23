@@ -13,6 +13,58 @@ const sections = [
   ['torrents', 'Торренты и VPN', 'Torrents & VPN'], ['access', 'Доступ и язык', 'Access & language'], ['prof', 'Профили и копии', 'Profiles & backup'], ['diag', 'Диагностика', 'Diagnostics'],
 ] as const;
 
+// Public TMDB mirror used by Lampa, for networks where TMDB is blocked.
+const cubMirror = { tmdbApi: 'https://apitmdb.cub.red/3', tmdbImg: 'https://imagetmdb.cub.red/t/p' };
+
+// TmdbAccess picks how the server reaches TMDB: directly (with the built-in
+// DNS-over-HTTPS fallback) or through a mirror.
+function TmdbAccess({ st, save }: { st: S; save: (p: Partial<Record<keyof S, string>>) => Promise<S> }) {
+  const mode = !st.tmdbApi && !st.tmdbImg ? 'direct' : st.tmdbApi === cubMirror.tmdbApi && st.tmdbImg === cubMirror.tmdbImg ? 'cub' : 'custom';
+  const [sel, setSel] = useState(mode);
+  const [apiUrl, setApiUrl] = useState(st.tmdbApi || '');
+  const [imgUrl, setImgUrl] = useState(st.tmdbImg || '');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const apply = async (v: { tmdbApi: string; tmdbImg: string }) => {
+    setBusy(true); setMsg(null);
+    try {
+      await save(v);
+      setMsg({ ok: true, text: st.tmdbKeySet ? tr('TMDB отвечает', 'TMDB responds') : tr('Сохранено', 'Saved') });
+    } catch (e: any) { setMsg({ ok: false, text: e.message }); } finally { setBusy(false); }
+  };
+  const pick = (v: string) => {
+    setSel(v);
+    if (v === 'direct') apply({ tmdbApi: '', tmdbImg: '' });
+    if (v === 'cub') apply(cubMirror);
+  };
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div className="row">
+        <label className="fld" style={{ flex: '0 1 320px' }}>{tr('Подключение к TMDB', 'Connecting to TMDB')}
+          <select className="sel" value={sel} onChange={(e) => pick(e.target.value)} disabled={busy}>
+            <option value="direct">{tr('Напрямую (с обходом DNS-блокировки)', 'Direct (with DNS block bypass)')}</option>
+            <option value="cub">{tr('Через зеркало CUB (как в Lampa)', 'Via the CUB mirror (as in Lampa)')}</option>
+            <option value="custom">{tr('Своё зеркало…', 'Custom mirror…')}</option>
+          </select>
+        </label>
+        {busy && <span className="spin" />}
+      </div>
+      {sel === 'custom' && (
+        <form className="row" onSubmit={(e) => { e.preventDefault(); apply({ tmdbApi: apiUrl.trim(), tmdbImg: imgUrl.trim() }); }}>
+          <label className="fld" style={{ flex: '1 1 240px' }}>{tr('Адрес API', 'API address')}
+            <input className="inp mono" style={{ fontSize: 12 }} value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} placeholder="https://…/3" />
+          </label>
+          <label className="fld" style={{ flex: '1 1 240px' }}>{tr('Адрес картинок', 'Images address')}
+            <input className="inp mono" style={{ fontSize: 12 }} value={imgUrl} onChange={(e) => setImgUrl(e.target.value)} placeholder="https://…/t/p" />
+          </label>
+          <button className="btn btn-d sm" style={{ alignSelf: 'flex-end' }} disabled={busy}>{tr('Сохранить', 'Save')}</button>
+        </form>
+      )}
+      {msg && <div className={msg.ok ? 'ok' : 'err'}>{msg.text}</div>}
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const loc = useLocation();
   const [cur, setCur] = useState(loc.hash.slice(1) || 'look');
@@ -188,6 +240,7 @@ function LibrarySection({ st, save }: { st: S | null; save: (p: any) => Promise<
         </form>
       </div>
       {msg && <div className={msg.ok ? 'ok' : 'err'}>{msg.text}</div>}
+      {st && <TmdbAccess st={st} save={save} />}
       <div className="sub">{tr('В TMDB уходят только названия и годы для поиска. Файлы и история просмотра остаются на ПК.', 'Only titles and years are sent to TMDB. Files and history stay on this PC.')}</div>
       {picker && <FolderPicker title={tr('Папка библиотеки', 'Library folder')} onPick={add} onClose={() => setPicker(false)} />}
     </Card>

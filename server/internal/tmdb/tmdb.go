@@ -24,17 +24,49 @@ import (
 var apiBase = "https://api.themoviedb.org/3"
 var imgBase = "https://image.tmdb.org/t/p/"
 
+// Mirror is an alternative address for the TMDB API and images, for
+// networks where TMDB itself is blocked. Empty fields mean TMDB directly.
+type Mirror struct {
+	API   string // e.g. https://example.org/3
+	Image string // e.g. https://example.org/t/p/
+}
+
 var ErrNoKey = errors.New("TMDB key is not set")
 
 type Client struct {
 	Key      func() string // v3 api key or v4 read access token
 	Lang     func() string // e.g. ru-RU
 	ImageDir string
+	Mirror   func() Mirror // optional
 	http     *http.Client
 }
 
 func New(imageDir string, key, lang func() string) *Client {
-	return &Client{Key: key, Lang: lang, ImageDir: imageDir, http: &http.Client{Timeout: 20 * time.Second}}
+	return &Client{Key: key, Lang: lang, ImageDir: imageDir, http: &http.Client{Timeout: 20 * time.Second, Transport: newTransport()}}
+}
+
+func (c *Client) bases() (api, img string) {
+	api, img = apiBase, imgBase
+	if c.Mirror != nil {
+		m := c.Mirror()
+		if v := strings.TrimRight(strings.TrimSpace(m.API), "/"); v != "" {
+			api = v
+		}
+		if v := strings.TrimRight(strings.TrimSpace(m.Image), "/"); v != "" {
+			img = v + "/"
+		}
+	}
+	return api, img
+}
+
+// netErr describes a connection failure without the request URL, which
+// carries the API key.
+func netErr(err error) error {
+	var ue *url.Error
+	if errors.As(err, &ue) {
+		err = ue.Err
+	}
+	return fmt.Errorf("нет связи с TMDB: %v. Если TMDB заблокирован у провайдера, включите VPN или укажите зеркало TMDB в настройках", err)
 }
 
 func (c *Client) get(ctx context.Context, path string, q url.Values, out any) error {
@@ -45,7 +77,8 @@ func (c *Client) get(ctx context.Context, path string, q url.Values, out any) er
 	if q == nil {
 		q = url.Values{}
 	}
-	req, _ := http.NewRequestWithContext(ctx, "GET", apiBase+path, nil)
+	base, _ := c.bases()
+	req, _ := http.NewRequestWithContext(ctx, "GET", base+path, nil)
 	if len(key) > 40 { // v4 token
 		req.Header.Set("Authorization", "Bearer "+key)
 	} else {
@@ -56,7 +89,7 @@ func (c *Client) get(ctx context.Context, path string, q url.Values, out any) er
 	for attempt := 0; ; attempt++ {
 		resp, err := c.http.Do(req)
 		if err != nil {
-			return err
+			return netErr(err)
 		}
 		if resp.StatusCode == 429 && attempt < 3 {
 			resp.Body.Close()
@@ -137,7 +170,8 @@ func (c *Client) Search(ctx context.Context, kind, query string, year int) ([]Se
 	}
 	for i := range out.Results {
 		if out.Results[i].Poster != "" {
-			out.Results[i].Poster = imgBase + "w185" + out.Results[i].Poster
+			_, img := c.bases()
+			out.Results[i].Poster = img + "w185" + out.Results[i].Poster
 		}
 	}
 	return out.Results, nil
@@ -332,7 +366,8 @@ func (c *Client) cacheImage(ctx context.Context, size, path string) string {
 	if _, err := os.Stat(dst); err == nil {
 		return local
 	}
-	req, _ := http.NewRequestWithContext(ctx, "GET", imgBase+size+path, nil)
+	_, img := c.bases()
+	req, _ := http.NewRequestWithContext(ctx, "GET", img+size+path, nil)
 	resp, err := c.http.Do(req)
 	if err != nil {
 		return ""

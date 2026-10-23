@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -102,5 +103,23 @@ func TestCatalogImage(t *testing.T) {
 	}
 	if b, _ := os.ReadFile(filepath.Join(c.ImageDir, name)); string(b) != "jpeg" {
 		t.Fatalf("cached %q", b)
+	}
+}
+
+func TestMirror(t *testing.T) {
+	c := fakeTMDB(t)
+	real := apiBase
+	apiBase = "http://127.0.0.1:1" // TMDB "blocked"
+	c.Mirror = func() Mirror { return Mirror{API: real + "/", Image: imgBase} }
+	if _, err := c.Browse(context.Background(), BrowseQuery{Kind: "movie", List: "trending"}); err != nil {
+		t.Fatalf("mirror not used: %v", err)
+	}
+	c.Mirror = nil
+	cacheMu.Lock()
+	cache = map[string]cached{}
+	cacheMu.Unlock()
+	_, err := c.Browse(context.Background(), BrowseQuery{Kind: "movie", List: "trending"})
+	if err == nil || strings.Contains(err.Error(), "api_key") {
+		t.Fatalf("want a connection error without the key, got %v", err)
 	}
 }

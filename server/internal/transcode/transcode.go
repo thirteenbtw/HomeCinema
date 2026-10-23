@@ -286,6 +286,11 @@ func (m *Manager) buildArgs(o Options, dir string) []string {
 	}
 	if o.Start > 0 {
 		args = append(args, "-ss", strconv.FormatFloat(o.Start, 'f', 3, 64))
+		if o.CopyVideo {
+			// Copied video starts on the keyframe before Start; without this the
+			// audio would start seconds later and play out of sync.
+			args = append(args, "-noaccurate_seek")
+		}
 	}
 	args = append(args, "-i", o.Input, "-map", "0:v:0")
 	if o.Audio >= 0 {
@@ -293,7 +298,7 @@ func (m *Manager) buildArgs(o Options, dir string) []string {
 	} else {
 		args = append(args, "-map", "0:a:0?")
 	}
-	args = append(args, "-sn", "-dn", "-map_metadata", "-1", "-map_chapters", "-1")
+	args = append(args, "-sn", "-dn", "-map_metadata", "-1", "-map_chapters", "-1", "-max_muxing_queue_size", "2048")
 
 	if o.CopyVideo {
 		args = append(args, "-c:v", "copy")
@@ -335,7 +340,9 @@ func (m *Manager) buildArgs(o Options, dir string) []string {
 	if o.CopyAudio {
 		args = append(args, "-c:a", "copy")
 	} else {
-		args = append(args, "-c:a", "aac", "-ac", "2", "-b:a", "192k")
+		// async resampling fills gaps and drops overlaps after a seek or a
+		// damaged spot in a partly downloaded file instead of garbling sound.
+		args = append(args, "-af", "aresample=async=1000", "-c:a", "aac", "-ac", "2", "-b:a", "192k")
 	}
 	args = append(args,
 		"-f", "hls", "-hls_time", "4", "-hls_list_size", "0", "-hls_playlist_type", "event",
@@ -343,6 +350,43 @@ func (m *Manager) buildArgs(o Options, dir string) []string {
 		"-hls_segment_filename", filepath.Join(dir, "seg%05d.ts"),
 		filepath.Join(dir, "index.m3u8"))
 	return args
+}
+
+var reFrame = regexp.MustCompile(`(?m)^0,\s*(-?\d+),`)
+var reTimebase = regexp.MustCompile(`(?m)^#tb 0: (\d+)/(\d+)`)
+
+// KeyframeBefore returns the position of the video keyframe that a seek to t
+// lands on when the video is stream-copied.
+func (m *Manager) KeyframeBefore(ctx context.Context, input string, t float64) (float64, bool) {
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+	args := []string{"-hide_banner", "-v", "error", "-nostdin"}
+	if strings.HasPrefix(input, "http") {
+		args = append(args, "-reconnect", "1", "-reconnect_streamed", "1")
+	}
+	args = append(args, "-ss", strconv.FormatFloat(t, 'f', 3, 64), "-noaccurate_seek", "-copyts", "-start_at_zero",
+		"-i", input, "-map", "0:v:0", "-c", "copy", "-frames:v", "1", "-f", "framecrc", "-")
+	cmd := exec.CommandContext(ctx, m.FFmpeg, args...)
+	probe.HideWindow(cmd)
+	out, err := cmd.Output()
+	if err != nil {
+		return 0, false
+	}
+	return parseFramePTS(string(out))
+}
+
+func parseFramePTS(out string) (float64, bool) {
+	tb, fr := reTimebase.FindStringSubmatch(out), reFrame.FindStringSubmatch(out)
+	if tb == nil || fr == nil {
+		return 0, false
+	}
+	num, _ := strconv.ParseFloat(tb[1], 64)
+	den, _ := strconv.ParseFloat(tb[2], 64)
+	pts, _ := strconv.ParseFloat(fr[1], 64)
+	if den == 0 {
+		return 0, false
+	}
+	return max(pts*num/den, 0), true
 }
 
 func burnFilter(o Options) string {

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Component, createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useApp } from '../state';
 import { t, tr } from '../i18n';
@@ -71,11 +71,29 @@ export function Shell() {
             </Link>
           </div>
         </nav>
-        <Outlet />
+        <PageBoundary key={loc.pathname}><Outlet /></PageBoundary>
         <CastDialog />
       </div>
     </AmbientCtx.Provider>
   );
+}
+
+// PageBoundary keeps a crash in one page from blanking the whole app; it
+// resets when the user navigates elsewhere.
+class PageBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  componentDidCatch(error: Error) { console.error(error); }
+  render() {
+    if (!this.state.error) return this.props.children;
+    return (
+      <main className="main pad">
+        <h1 className="h1">{tr('Что-то пошло не так', 'Something went wrong')}</h1>
+        <div className="err">{this.state.error.message}</div>
+        <div className="row"><button className="btn btn-l sm" onClick={() => this.setState({ error: null })}>{tr('Попробовать снова', 'Try again')}</button></div>
+      </main>
+    );
+  }
 }
 
 function Nav({ to, icon, label, end, dot, extra }: { to: string; icon: string; label: string; end?: boolean; dot?: boolean; extra?: boolean }) {
