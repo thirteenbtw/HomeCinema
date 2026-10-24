@@ -17,7 +17,7 @@ import { tr } from './i18n';
 
 function Gate() {
   const { state } = useApp();
-  if (!state) return <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}><span className="spin" /></div>;
+  if (!state) return <div style={{ minHeight: 'var(--vh)', display: 'grid', placeItems: 'center' }}><span className="spin" /></div>;
   if (state.authRequired) return <Login />;
   if (!state.setupDone && state.local) return <Setup />;
   return (

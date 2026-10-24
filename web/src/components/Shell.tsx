@@ -1,10 +1,11 @@
 import { Component, createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '../state';
 import { t, tr } from '../i18n';
 import { Icon } from './Icon';
 import { CastDialog } from './CastDialog';
 import { installDragScroll } from './dragScroll';
+import { installTorrentDrop } from './torrentDrop';
 
 // Pages tint the ambient background (e.g. with the featured poster's colors).
 const AmbientCtx = createContext<(colors: string[] | null) => void>(() => {});
@@ -20,11 +21,13 @@ export function Shell() {
   const raf = useRef(0);
   const pending = useRef<{ x: number; y: number } | null>(null);
   const loc = useLocation();
+  const nav = useNavigate();
   const live = prefs.bg === 'live' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const bgOn = prefs.bg !== 'off';
 
   useEffect(() => () => cancelAnimationFrame(raf.current), []);
   useEffect(() => installDragScroll(), []);
+  useEffect(() => installTorrentDrop(() => nav('/torrents')), [nav]);
   useEffect(() => { window.scrollTo(0, 0); }, [loc.pathname]);
 
   const onMove = (e: React.MouseEvent) => {
@@ -48,7 +51,7 @@ export function Shell() {
             <div className="blob" style={{ width: 560, height: 560, left: -160, top: 760, background: c[2], transform: mv(40) }} />
           </div>
         )}
-        <nav aria-label={tr('Разделы', 'Sections')} style={{ flex: '0 0 64px', padding: '16px 10px', borderRight: '1px solid var(--line)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, position: 'sticky', top: 0, height: '100vh', zIndex: 2 }}>
+        <nav aria-label={tr('Разделы', 'Sections')} style={{ flex: '0 0 64px', padding: '16px 10px', borderRight: '1px solid var(--line)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, position: 'sticky', top: 0, height: 'var(--vh)', overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'none', zIndex: 2 }}>
           <Link to="/" aria-label="HomeCinema" className="nav-extra" style={{ width: 32, height: 32, borderRadius: 9, background: 'var(--acc)', display: 'grid', placeItems: 'center', marginBottom: 16 }}>
             <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M8 5l11 7-11 7z" fill="#FFFFFF" /></svg>
           </Link>
@@ -68,7 +71,7 @@ export function Shell() {
             </button>
             <Nav to="/settings" icon="sliders" label={t('settings')} />
             <Link to="/profiles" aria-label={`${t('profile')}: ${profile?.name || ''}`} className="nav-extra"
-              style={{ width: 32, height: 32, borderRadius: '50%', background: profile?.color || 'var(--acc)', color: '#FFFFFF', font: "700 13px 'Inter',sans-serif", display: 'grid', placeItems: 'center' }}>
+              style={{ width: 32, height: 32, borderRadius: '50%', background: profile?.color || 'var(--acc)', color: '#FFFFFF', font: "700 calc(13px * var(--fs)) 'Inter',sans-serif", display: 'grid', placeItems: 'center' }}>
               {(profile?.name || '?').slice(0, 1).toUpperCase()}
             </Link>
           </div>
@@ -115,7 +118,7 @@ export function Section({ title, note, more, children, id }: { title: string; no
           <h2 id={id} className="h2">{title}</h2>
           {note && <div className="sub">{note}</div>}
         </div>
-        {more && <Link to={more} style={{ marginLeft: 'auto', fontSize: 13, fontWeight: 600 }}>{t('seeAll')}</Link>}
+        {more && <Link to={more} style={{ marginLeft: 'auto', fontSize: 'calc(13px * var(--fs))', fontWeight: 600 }}>{t('seeAll')}</Link>}
       </div>
       {children}
     </section>

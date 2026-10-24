@@ -176,7 +176,10 @@ type StreamStatus struct {
 	Down      float64 `json:"down"`
 	Seeds     int     `json:"seeds"`
 	Peers     int     `json:"peers"`
-	Pieces    []int   `json:"pieces"` // 0 none, 1 have, 2 priority (player position), 3 partial
+	Known     int     `json:"known"`
+	DHT       int     `json:"dhtNodes"`
+	Hint      string  `json:"hint,omitempty"` // why metadata is not here yet
+	Pieces    []int   `json:"pieces"`         // 0 none, 1 have, 2 priority (player position), 3 partial
 	NumPieces int     `json:"numPieces"`
 	PieceSize int64   `json:"pieceSize"`
 	Progress  float64 `json:"progress"`
@@ -192,8 +195,9 @@ func (e *Engine) Stream(hash string, idx int, cells int) (StreamStatus, error) {
 	}
 	st := StreamStatus{Hash: m.row.InfoHash, Name: m.row.Name, Down: m.down, Pieces: []int{}}
 	s := m.t.Stats()
-	st.Seeds, st.Peers = s.ConnectedSeeders, s.ActivePeers
+	st.Seeds, st.Peers, st.Known = s.ConnectedSeeders, s.ActivePeers, s.TotalPeers
 	if m.t.Info() == nil {
+		st.DHT, st.Hint = e.dhtNodesLocked(), e.metaHintLocked(m, s)
 		return st, nil
 	}
 	files := m.t.Files()

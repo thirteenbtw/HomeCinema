@@ -57,11 +57,17 @@ func (s *Server) addTorrent(w http.ResponseWriter, r *http.Request) error {
 		if strings.HasPrefix(link, "magnet:") {
 			source = link
 		} else {
+			// The .torrent from the indexer skips the metadata wait; the
+			// magnet sent along (if any) is the fallback.
 			data, magnet, err := torrent.FetchTorrent(r.Context(), link)
-			if err != nil {
+			switch {
+			case err == nil && magnet != "":
+				source, file = magnet, nil
+			case err == nil:
+				file = data
+			case !strings.HasPrefix(source, "magnet:"):
 				return badRequest("не удалось скачать .torrent: %v", err)
 			}
-			source, file = magnet, data
 		}
 	}
 	if source == "" && len(file) == 0 {

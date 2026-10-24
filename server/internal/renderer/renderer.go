@@ -25,6 +25,11 @@ type Caps struct {
 	MaxHeight int      `json:"maxHeight"`
 	HDR       bool     `json:"hdr"`
 	TextSubs  bool     `json:"textSubs"`
+	// ToneMaps: the player maps HDR10/HLG to an SDR screen itself (Chromium
+	// does), so HDR video can be passed through instead of transcoded.
+	ToneMaps bool `json:"toneMaps,omitempty"`
+	// NoDirect: the client failed to open the file as is; remux to HLS.
+	NoDirect bool `json:"-"`
 }
 
 func (c Caps) Has(list []string, v string) bool {
