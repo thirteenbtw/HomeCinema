@@ -45,6 +45,9 @@ func (r *streamReader) Seek(off int64, whence int) (int64, error) {
 func (r *streamReader) Close() error {
 	r.e.mu.Lock()
 	delete(r.m.streams, r)
+	if len(r.m.streams) == 0 {
+		r.e.applyFilePriorities(r.m)
+	}
 	r.e.mu.Unlock()
 	return r.Reader.Close()
 }
@@ -75,15 +78,19 @@ func (e *Engine) openStream(hash string, idx int) (*streamReader, *torrent.File,
 	// The container index (mp4 moov atom, mkv cues) is often at the end.
 	pieceLen := m.t.Info().PieceLength
 	end := f.EndPieceIndex()
-	tailPieces := int(max(4<<20/pieceLen, 1))
+	tailPieces := int(max(8<<20/pieceLen, 1))
 	for i := max(end-tailPieces, f.BeginPieceIndex()); i < end; i++ {
 		m.t.Piece(i).SetPriority(torrent.PiecePriorityHigh)
 	}
 	rd := f.NewReader()
 	rd.SetResponsive()
-	rd.SetReadahead(32 << 20)
+	// Read ahead at least the start buffer: 4K remuxes run at 50–80 Mbit/s.
+	rd.SetReadahead(max(64<<20, int64(e.settings.BufferMB)<<20))
 	sr := &streamReader{Reader: rd, e: e, m: m}
 	m.streams[sr] = struct{}{}
+	if len(m.streams) == 1 {
+		e.applyFilePriorities(m)
+	}
 	m.streamIdx = idx
 	m.t.AllowDataDownload()
 	return sr, f, nil

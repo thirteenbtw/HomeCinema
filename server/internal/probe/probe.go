@@ -2,8 +2,11 @@
 package probe
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -54,25 +57,35 @@ func (p *Prober) Probe(ctx context.Context, path string) (store.File, error) {
 	f.Size = st.Size()
 	f.Mtime = st.ModTime().Unix()
 
-	err = p.run(ctx, path, &f)
+	err = p.run(ctx, path, &f, time.Minute)
 	f.Subs = append(f.Subs, External(path)...)
 	return f, err
 }
 
-// ProbeURL probes a stream served over HTTP (a torrent file being downloaded).
+// ProbeURL probes a stream served over HTTP (a torrent file being
+// downloaded). It may have to wait for the pieces holding the start and the
+// end of the file, hence the long timeout.
 func (p *Prober) ProbeURL(ctx context.Context, url string) (store.File, error) {
 	f := store.File{Path: url, BitDepth: 8}
-	err := p.run(ctx, url, &f)
+	err := p.run(ctx, url, &f, 3*time.Minute)
 	return f, err
 }
 
-func (p *Prober) run(ctx context.Context, path string, f *store.File) error {
-	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+func (p *Prober) run(ctx context.Context, path string, f *store.File, timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, p.FFprobe, "-v", "error", "-print_format", "json", "-show_format", "-show_streams", path)
 	hideWindow(cmd)
 	out, err := cmd.Output()
 	if err != nil {
+		// A killed process reports "exit status 1" on Windows: name the timeout.
+		if ctx.Err() != nil {
+			return fmt.Errorf("не уложились в %d мин", int(timeout.Minutes()))
+		}
+		var ee *exec.ExitError
+		if errors.As(err, &ee) && len(bytes.TrimSpace(ee.Stderr)) > 0 {
+			return fmt.Errorf("%v: %s", err, lastLine(ee.Stderr))
+		}
 		return err
 	}
 	var r ffOut
@@ -194,4 +207,9 @@ func guessLang(suffix string) (string, string) {
 		return "eng", ""
 	}
 	return "", strings.Trim(suffix, ". _-")
+}
+
+func lastLine(b []byte) string {
+	lines := bytes.Split(bytes.TrimSpace(b), []byte("\n"))
+	return string(bytes.TrimSpace(lines[len(lines)-1]))
 }

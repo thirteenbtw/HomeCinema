@@ -577,7 +577,7 @@ func (s *Server) probeURL(ctx context.Context, key, url string) (*store.File, er
 		return f, nil
 	}
 	s.probes.mu.Unlock()
-	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 4*time.Minute)
 	defer cancel()
 	p := &probe.Prober{FFprobe: s.Cfg.FFprobe}
 	f, err := p.ProbeURL(ctx, url)

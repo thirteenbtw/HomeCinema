@@ -439,7 +439,11 @@ func bindTo(cfg *torrent.ClientConfig, ip net.IP, port int) {
 var _, netCGNAT, _ = net.ParseCIDR("100.64.0.0/10")
 
 // applyFilePriorities: wanted files download normally (download mode); in
-// stream mode only the reader drives priorities. Executables never download.
+// stream mode only the player's reader drives priorities while it plays, and a
+// kept stream fills in the rest when nobody is watching. Downloading the whole
+// file at the same time spreads the bandwidth over the entire torrent, so the
+// start and the container index (what the player needs first) came in slowly.
+// Executables never download.
 func (e *Engine) applyFilePriorities(m *managed) {
 	if m.t.Info() == nil {
 		return
@@ -454,6 +458,8 @@ func (e *Engine) applyFilePriorities(m *managed) {
 			f.SetPriority(torrent.PiecePriorityNone)
 		case m.row.Mode == "download" || m.row.Keep && m.row.Mode == "stream" && len(m.streams) == 0:
 			f.SetPriority(torrent.PiecePriorityNormal)
+		default:
+			f.SetPriority(torrent.PiecePriorityNone)
 		}
 	}
 }
