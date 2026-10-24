@@ -26,6 +26,21 @@ func defaultIndexers() []Indexer {
 	return []Indexer{{Name: "JacRed", URL: JacRedURL, Kind: KindJacRed, On: true}}
 }
 
+// isJacRedSite reports a public JacRed instance entered as a Torznab source
+// by its bare address, where only its JSON API answers.
+func isJacRedSite(in Indexer) bool {
+	u, err := url.Parse(strings.TrimSpace(in.URL))
+	if err != nil || strings.Trim(u.Path, "/") != "" {
+		return false
+	}
+	for _, h := range append([]string{JacRedURL}, JacRedMirrors...) {
+		if hu, err := url.Parse(h); err == nil && strings.EqualFold(hu.Host, u.Host) {
+			return true
+		}
+	}
+	return false
+}
+
 type jackettResults struct {
 	Results []struct {
 		Tracker     string `json:"Tracker"`

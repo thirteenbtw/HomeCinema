@@ -65,3 +65,15 @@ func TestJacRedMirrors(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 }
+
+func TestIsJacRedSite(t *testing.T) {
+	for u, want := range map[string]bool{
+		"https://jac.red": true, "https://jacred.su/": true, "https://JACRED.xyz": true,
+		"https://jac.red/api/v2.0/indexers/all/results/torznab/": false,
+		"http://127.0.0.1:9117/":                                 false,
+	} {
+		if got := isJacRedSite(Indexer{URL: u}); got != want {
+			t.Errorf("%s: %v", u, got)
+		}
+	}
+}

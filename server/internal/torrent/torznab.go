@@ -71,8 +71,15 @@ func (e *Engine) Indexers() []Indexer {
 	var out []Indexer
 	_ = json.Unmarshal([]byte(e.Store.Setting("indexers", "[]")), &out)
 	if e.Store.Setting("jacredAdded", "") == "" {
-		// once, for new and existing installs; removing it afterwards sticks
-		out = append(defaultIndexers(), out...)
+		// once, for new and existing installs; removing it afterwards sticks.
+		// JacRed sites added by hand as Torznab are covered by it.
+		kept := defaultIndexers()
+		for _, in := range out {
+			if !isJacRedSite(in) {
+				kept = append(kept, in)
+			}
+		}
+		out = kept
 		if e.SetIndexers(out) == nil {
 			_ = e.Store.SetSetting("jacredAdded", "1")
 		}
@@ -113,7 +120,7 @@ func (e *Engine) Search(ctx context.Context, query string) ([]Result, []string) 
 			defer wg.Done()
 			var res []Result
 			var err error
-			if in.Kind == KindJacRed {
+			if in.Kind == KindJacRed || isJacRedSite(in) {
 				res, err = queryJacRed(ctx, client, in, query)
 			} else {
 				res, err = queryTorznab(ctx, client, in, query)
