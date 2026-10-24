@@ -53,6 +53,7 @@ type CatalogTitle struct {
 	Cast      []CatalogCast `json:"cast"`
 	Related   []CatalogItem `json:"related"`
 	Countries []string      `json:"countries"`
+	Trailer   string        `json:"trailer,omitempty"` // YouTube video key
 }
 
 type Season struct {
@@ -63,6 +64,7 @@ type Season struct {
 }
 
 type CatalogCast struct {
+	ID    int64  `json:"id,omitempty"`
 	Name  string `json:"name"`
 	Role  string `json:"role"`
 	Photo string `json:"photo"`
@@ -238,9 +240,9 @@ func (c *Client) Title(ctx context.Context, kind string, id int64) (CatalogTitle
 	if kind != "tv" {
 		kind = "movie"
 	}
-	extra := "credits,release_dates,recommendations,external_ids"
+	extra := "credits,release_dates,recommendations,external_ids,videos"
 	if kind == "tv" {
-		extra = "credits,content_ratings,recommendations,external_ids"
+		extra = "credits,content_ratings,recommendations,external_ids,videos"
 	}
 	var d struct {
 		details
@@ -258,9 +260,10 @@ func (c *Client) Title(ctx context.Context, kind string, id int64) (CatalogTitle
 		External struct {
 			ImdbID string `json:"imdb_id"`
 		} `json:"external_ids"`
-		Recommendations listResp `json:"recommendations"`
+		Recommendations listResp  `json:"recommendations"`
+		Videos          videoList `json:"videos"`
 	}
-	if err := c.getCached(ctx, fmt.Sprintf("/%s/%d", kind, id), url.Values{"language": {c.Lang()}, "append_to_response": {extra}}, &d); err != nil {
+	if err := c.getCached(ctx, fmt.Sprintf("/%s/%d", kind, id), url.Values{"language": {c.Lang()}, "append_to_response": {extra}, "include_video_language": {videoLangs(c.Lang())}}, &d); err != nil {
 		return CatalogTitle{}, err
 	}
 	li := listItem{ID: d.details.ID, Title: d.details.Title, Name: d.details.Name, Original: d.details.Original, OrigName: d.details.OrigName,
@@ -293,11 +296,11 @@ func (c *Client) Title(ctx context.Context, kind string, id int64) (CatalogTitle
 		if i >= 15 {
 			break
 		}
-		t.Cast = append(t.Cast, CatalogCast{Name: cr.Name, Role: cr.Character, Photo: ImageURL("w185", cr.Profile)})
+		t.Cast = append(t.Cast, CatalogCast{ID: cr.ID, Name: cr.Name, Role: cr.Character, Photo: ImageURL("w185", cr.Profile)})
 	}
 	for _, cr := range d.Credits.Crew {
 		if cr.Job == "Director" {
-			t.Cast = append([]CatalogCast{{Name: cr.Name, Role: "Режиссёр", Photo: ImageURL("w185", cr.Profile)}}, t.Cast...)
+			t.Cast = append([]CatalogCast{{ID: cr.ID, Name: cr.Name, Role: "Режиссёр", Photo: ImageURL("w185", cr.Profile)}}, t.Cast...)
 			break
 		}
 	}
@@ -307,6 +310,7 @@ func (c *Client) Title(ctx context.Context, kind string, id int64) (CatalogTitle
 		}
 		t.Seasons = append(t.Seasons, Season{Number: s.Number, Name: s.Name, Episodes: s.Episodes, Year: yearOf(s.AirDate)})
 	}
+	t.Trailer = d.Videos.trailer(c.Lang())
 	t.Related = toPage(d.Recommendations, kind).Items
 	if len(t.Related) > 18 {
 		t.Related = t.Related[:18]

@@ -169,6 +169,7 @@ function Look() {
       </div>
       <TextSize />
       <label className="chk"><input type="checkbox" checked={prefs.posterTint} onChange={(e) => setPrefs({ posterTint: e.target.checked })} />{tr('Подстраивать цвет фона под постер текущего фильма', 'Tint the background with the current poster')}</label>
+      <label className="chk"><input type="checkbox" checked={prefs.trailers} onChange={(e) => setPrefs({ trailers: e.target.checked })} />{tr('Автозапуск трейлеров в шапке и при наведении на постер (без звука, с YouTube)', 'Autoplay trailers in the header and on poster hover (muted, from YouTube)')}</label>
       <div className="sub">{tr('Если в системе включено «Уменьшить движение», живой фон и параллакс замирают автоматически.', 'With the system “reduce motion” setting, the live background and parallax stay still.')}</div>
     </Card>
   );

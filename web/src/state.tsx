@@ -25,7 +25,7 @@ type Ctx = {
 const AppCtx = createContext<Ctx>(null as unknown as Ctx);
 export const useApp = () => useContext(AppCtx);
 
-const defaults: Required<Prefs> = { theme: 'light', accent: 'red', bg: 'live', intensity: 100, posterTint: true };
+const defaults: Required<Prefs> = { theme: 'light', accent: 'red', bg: 'live', intensity: 100, posterTint: true, trailers: true };
 
 function loadLocalPrefs(): Prefs {
   try { return JSON.parse(localStorage.getItem('hc.prefs') || '{}'); } catch { return {}; }

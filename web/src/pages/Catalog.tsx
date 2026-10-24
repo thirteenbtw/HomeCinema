@@ -7,6 +7,8 @@ import { Art } from '../components/Art';
 import { Section } from '../components/Shell';
 import { TopBar } from '../components/TopBar';
 import { Featured, Badge } from '../components/Featured';
+import { previewProps } from '../components/Preview';
+import { PeopleRow } from './Person';
 import { ContinueSection, useHomeData } from '../components/LibraryParts';
 import { Icon, PlayGlyph } from '../components/Icon';
 
@@ -61,6 +63,7 @@ export default function Catalog() {
       {browsing && genres.data && <GenreTiles kind={kind} genres={genres.data} onPick={(id) => set({ genre: id, list: '' })} />}
       {browsing && <ContinueSection items={home.data?.continue || []} />}
 
+      {q && <PeopleRow q={q} />}
       {searching && !q && <SearchStart kind={kind} genres={genres.data || []} onPick={(id) => set({ genre: id, search: '' })} onQuery={(text) => set({ q: text })} />}
 
       {!searching && !browsing && (
@@ -100,7 +103,7 @@ export default function Catalog() {
 function Spotlight({ kind }: { kind: Kind }) {
   const { data } = useAsync(() => api.get<CatalogPage>(`/api/catalog${qs({ kind, list: 'trending' })}`), [kind]);
   const slides = (data?.items || []).filter((x) => x.backdrop).slice(0, 6).map((x) => ({
-    key: x.kind + x.id, name: x.title, backdrop: x.backdrop.replace('/w780/', '/w1280/'), overview: x.overview,
+    key: x.kind + x.id, name: x.title, backdrop: x.backdrop.replace('/w780/', '/w1280/'), overview: x.overview, trailer: { kind: x.kind, id: x.id },
     meta: [x.year || '', x.kind === 'tv' ? tr('Сериал', 'Show') : tr('Фильм', 'Movie')].filter(Boolean).join(' · '),
     badges: <>{x.rating > 0 && <Badge>★ {x.rating.toFixed(1)}</Badge>}<Badge accent>{tr('В тренде', 'Trending')}</Badge></>,
     actions: <Link className="btn btn-w" to={`/catalog/${x.kind}/${x.id}`}><PlayGlyph />{t('watch')}</Link>,
@@ -139,7 +142,7 @@ function TopRow({ path, title, more }: { path: string; title: string; more: stri
       {!data ? <div style={{ height: 230, display: 'grid', placeItems: 'center' }}><span className="spin" /></div> : (
         <div className="scroll-x" style={{ gap: 18 }}>
           {data.items.slice(0, 10).map((x, i) => (
-            <Link key={x.kind + x.id} to={`/catalog/${x.kind}/${x.id}`} className="poster" style={{ flex: 'none', gap: 6 }}>
+            <Link key={x.kind + x.id} to={`/catalog/${x.kind}/${x.id}`} className="poster" style={{ flex: 'none', gap: 6 }} {...previewProps(x)}>
               <div style={{ display: 'flex', alignItems: 'flex-end' }}>
                 <span className="disp topnum" aria-hidden="true">{i + 1}</span>
                 <Art className="pimg" src={x.poster} title={x.title} style={{ width: 130, aspectRatio: '2/3', borderRadius: 10, boxShadow: '0 6px 18px var(--sh)' }}
@@ -165,7 +168,7 @@ function WideRow({ path, title, more, tag }: { path: string; title: string; more
       {!data ? <div style={{ height: 180, display: 'grid', placeItems: 'center' }}><span className="spin" /></div> : (
         <div className="scroll-x" style={{ gap: 10 }}>
           {data.items.filter((x) => x.backdrop).slice(0, 12).map((x) => (
-            <Link key={x.kind + x.id} to={`/catalog/${x.kind}/${x.id}`} className="poster" style={{ flex: 'none', width: 260 }}>
+            <Link key={x.kind + x.id} to={`/catalog/${x.kind}/${x.id}`} className="poster" style={{ flex: 'none', width: 260 }} {...previewProps(x)}>
               <Art className="pimg" src={x.backdrop} title={x.title} disc="wide" style={{ aspectRatio: '16/9', borderRadius: 10 }}
                 label={<>
                   <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 40%, #000000B8)' }} />
@@ -279,7 +282,7 @@ function Grid({ path, title }: { path: string; title: string }) {
 
 export function CatalogCard({ x, showKind }: { x: CatalogItem; showKind?: boolean }) {
   return (
-    <Link to={`/catalog/${x.kind}/${x.id}`} className="poster">
+    <Link to={`/catalog/${x.kind}/${x.id}`} className="poster" {...previewProps(x)}>
       <Art className="pimg" src={x.poster} title={x.title} style={{ aspectRatio: '2/3', borderRadius: 12 }}
         label={
           <>

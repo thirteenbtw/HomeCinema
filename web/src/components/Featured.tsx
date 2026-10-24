@@ -4,11 +4,14 @@ import { tr } from '../i18n';
 import { Backdrop, ambientFor, paletteFor } from './Art';
 import { Icon } from './Icon';
 import { useAmbient } from './Shell';
+import { MuteButton, YouTubeCover, useTrailer, type TrailerRef } from './Trailer';
 
-export type Slide = { key: string; name: string; backdrop?: string; meta: string; badges?: ReactNode; overview?: string; actions: ReactNode };
+export type Slide = { key: string; name: string; backdrop?: string; meta: string; badges?: ReactNode; overview?: string; actions: ReactNode; trailer?: TrailerRef };
 
 // Featured carousel from the design: a large backdrop with the title, a few
-// actions and dots; rotates every 9 s unless the pointer is over it.
+// actions and dots; rotates every 9 s unless the pointer is over it. After a
+// short pause the slide's trailer starts muted behind the text; the carousel
+// waits for it and moves on when it ends.
 export function Featured({ slides, label }: { slides: Slide[]; label: string }) {
   const { prefs } = useApp();
   const setAmbient = useAmbient();
@@ -21,12 +24,17 @@ export function Featured({ slides, label }: { slides: Slide[]; label: string }) 
   const n = slides.length;
   const i = n ? idx % n : 0;
   const s = slides[i];
+  const [muted, setMuted] = useState(true);
+  const [playing, setPlaying] = useState(false);
+  const [stopped, setStopped] = useState('');
+  const ytKey = useTrailer(s?.trailer, stopped !== s?.key, 2500);
+  useEffect(() => setPlaying(false), [s?.key]);
 
   useEffect(() => {
-    if (n < 2) return;
+    if (n < 2 || playing) return;
     const id = window.setInterval(() => { if (!hover) setIdx((x) => (x + 1) % n); }, 9000);
     return () => window.clearInterval(id);
-  }, [n, hover]);
+  }, [n, hover, playing, i]);
   useEffect(() => { if (s) setAmbient(ambientFor(s.name)); return () => setAmbient(null); }, [s?.key]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!s) return null;
 
@@ -59,9 +67,17 @@ export function Featured({ slides, label }: { slides: Slide[]; label: string }) 
           </div>
         </>
       )}
+      {ytKey && <YouTubeCover key={s.key} ytKey={ytKey} muted={muted} onPlaying={() => setPlaying(true)}
+        onEnd={() => { setPlaying(false); setStopped(s.key); if (n > 1) setIdx((x) => (x + 1) % n); }} />}
       <div aria-hidden="true" style={{ position: 'absolute', width: 440, height: 440, margin: '-220px 0 0 -220px', left: spot.x, top: spot.y, borderRadius: '50%', background: orb, filter: 'blur(70px)', opacity: live && hover ? 0.45 : 0, mixBlendMode: 'screen', transition: 'opacity .4s', pointerEvents: 'none' }} />
       <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, #000000B8 0%, #00000073 45%, transparent 75%), linear-gradient(0deg, #00000080 0%, transparent 45%)' }} />
 
+      {playing && (
+        <div style={{ position: 'absolute', right: 16, top: 16, zIndex: 2, display: 'flex', gap: 6 }}>
+          <MuteButton muted={muted} onToggle={() => setMuted(!muted)} />
+          <button className="yt-mute" onClick={() => { setPlaying(false); setStopped(s.key); }} aria-label={tr('Остановить трейлер', 'Stop trailer')}><Icon name="close" size={14} /></button>
+        </div>
+      )}
       {n > 1 && (
         <div className="feat-dots" style={{ position: 'absolute', right: 20, bottom: 20, display: 'flex', gap: 8, alignItems: 'center', zIndex: 1 }}>
           {slides.map((x, j) => (
@@ -78,7 +94,7 @@ export function Featured({ slides, label }: { slides: Slide[]; label: string }) 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 'calc(13px * var(--fs))', fontWeight: 600 }}>
           {s.meta}{s.badges}
         </div>
-        {s.overview && <p style={{ margin: 0, fontSize: 'calc(14px * var(--fs))', lineHeight: 1.55, color: '#D4D7DC', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{s.overview}</p>}
+        {s.overview && <p style={{ margin: 0, opacity: playing ? 0 : 1, maxHeight: playing ? 0 : 200, transition: 'opacity .6s, max-height .6s', fontSize: 'calc(14px * var(--fs))', lineHeight: 1.55, color: '#D4D7DC', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{s.overview}</p>}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingTop: 6 }}>{s.actions}</div>
       </div>
     </section>

@@ -44,6 +44,7 @@ type CastMember struct {
 	Role    string `json:"role"`
 	Photo   string `json:"photo"`
 	Profile string `json:"-"`
+	TmdbID  int64  `json:"tmdbId,omitempty"`
 }
 
 type Progress struct {
@@ -505,6 +506,7 @@ type Title struct {
 	Later    bool     `json:"later"`
 	Episodes int      `json:"episodes,omitempty"`
 	Overview string   `json:"overview"`
+	TmdbID   int64    `json:"tmdbId,omitempty"`
 }
 
 // Titles lists movies and shows together, filtered and sorted in Go: libraries
@@ -518,7 +520,7 @@ func (s *Store) Titles(profile int64, q Query) ([]Title, int, error) {
 		}
 		for _, m := range movies {
 			t := Title{Kind: "movie", ID: m.ID, Title: m.Title, Year: m.Year, Poster: m.Poster, Backdrop: m.Backdrop, Genres: m.Genres, Rating: m.Rating,
-				Quality: m.Quality, AddedAt: m.AddedAt, Favorite: m.Favorite, Later: m.Later, Overview: m.Overview}
+				Quality: m.Quality, AddedAt: m.AddedAt, Favorite: m.Favorite, Later: m.Later, Overview: m.Overview, TmdbID: m.TmdbID}
 			if m.Progress != nil {
 				t.Watched = m.Progress.Watched
 				if m.Progress.Duration > 0 {
@@ -535,7 +537,7 @@ func (s *Store) Titles(profile int64, q Query) ([]Title, int, error) {
 		}
 		for _, sh := range shows {
 			out = append(out, Title{Kind: "show", ID: sh.ID, Title: sh.Title, Year: sh.Year, Poster: sh.Poster, Backdrop: sh.Backdrop, Genres: sh.Genres,
-				Rating: sh.Rating, AddedAt: sh.AddedAt, Watched: sh.Unwatched == 0, Favorite: sh.Favorite, Later: sh.Later, Episodes: sh.Episodes, Overview: sh.Overview})
+				Rating: sh.Rating, AddedAt: sh.AddedAt, Watched: sh.Unwatched == 0, Favorite: sh.Favorite, Later: sh.Later, Episodes: sh.Episodes, Overview: sh.Overview, TmdbID: sh.TmdbID})
 		}
 	}
 	search := strings.ToLower(strings.TrimSpace(q.Search))

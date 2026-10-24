@@ -41,6 +41,7 @@ export default function Library() {
     ? localSlides((home.data?.featured || []).filter((x) => x.kind === 'movie'), openCast)
     : (data?.items || []).filter((x) => x.backdrop).slice(0, 5).map((x) => ({
       key: String(x.id), name: x.title, backdrop: x.backdrop, overview: x.overview,
+      trailer: x.tmdbId ? { kind: 'tv' as const, id: x.tmdbId } : undefined,
       meta: [x.year || '', ...x.genres.slice(0, 2), x.episodes ? `${x.episodes} ${t('episodes')}` : ''].filter(Boolean).join(' · '),
       actions: <Link className="btn btn-w" to={`/show/${x.id}`}><PlayGlyph />{t('watch')}</Link>,
     }));

@@ -39,6 +39,7 @@ export function localSlides(items: Item[], openCast: (x: { fileId?: number; titl
     const isNew = Date.now() / 1000 - film.addedAt < 7 * 86400;
     return {
       key: String(film.id), name: itemName(film), backdrop: film.backdrop, overview: film.overview,
+      trailer: film.tmdbId ? { kind: 'movie' as const, id: film.tmdbId } : undefined,
       meta: [film.year || '', ...film.genres.slice(0, 2)].filter(Boolean).join(' · '),
       badges: <>
         {isNew && <Badge accent>{film.source === 'torrent' ? tr('Из торрента', 'From torrent') : tr('Новое', 'New')}</Badge>}

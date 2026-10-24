@@ -6,6 +6,7 @@ import Search from './pages/Search';
 import { MoviePage, ShowPage } from './pages/Movie';
 import Catalog from './pages/Catalog';
 import CatalogTitlePage from './pages/CatalogTitle';
+import PersonPage, { PeoplePage, PersonFind } from './pages/Person';
 import Player from './pages/Player';
 import Torrents from './pages/Torrents';
 import Devices from './pages/Devices';
@@ -27,6 +28,9 @@ function Gate() {
         <Route path="search" element={<Search />} />
         <Route path="catalog" element={<ToHome />} />
         <Route path="catalog/:kind/:id" element={<CatalogTitlePage />} />
+        <Route path="person/find" element={<PersonFind />} />
+        <Route path="person/:id" element={<PersonPage />} />
+        <Route path="people" element={<PeoplePage />} />
         <Route path="movie/:id" element={<MoviePage />} />
         <Route path="show/:id" element={<ShowPage />} />
         <Route path="play/torrent/:hash" element={<Player />} />

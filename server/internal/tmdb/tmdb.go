@@ -362,6 +362,7 @@ type genre struct {
 	Name string `json:"name"`
 }
 type credit struct {
+	ID        int64  `json:"id"`
 	Name      string `json:"name"`
 	Character string `json:"character"`
 	Job       string `json:"job"`
@@ -442,11 +443,11 @@ func (c *Client) Details(ctx context.Context, kind string, id int64) (store.Meta
 		if i >= 12 {
 			break
 		}
-		m.Cast = append(m.Cast, store.CastMember{Name: cr.Name, Role: cr.Character, Photo: c.cacheImage(ctx, "w185", cr.Profile)})
+		m.Cast = append(m.Cast, store.CastMember{Name: cr.Name, Role: cr.Character, Photo: c.cacheImage(ctx, "w185", cr.Profile), TmdbID: cr.ID})
 	}
 	for _, cr := range d.Credits.Crew {
 		if cr.Job == "Director" {
-			m.Cast = append(m.Cast, store.CastMember{Name: cr.Name, Role: "Режиссёр", Photo: c.cacheImage(ctx, "w185", cr.Profile)})
+			m.Cast = append(m.Cast, store.CastMember{Name: cr.Name, Role: "Режиссёр", Photo: c.cacheImage(ctx, "w185", cr.Profile), TmdbID: cr.ID})
 			break
 		}
 	}

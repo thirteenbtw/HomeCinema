@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useApp } from '../state';
 import { t, tr } from '../i18n';
 import { Icon } from './Icon';
@@ -11,6 +11,7 @@ export function TopBar({ types = true, catalog = false }: { types?: boolean; cat
   const nav = useNavigate();
   const { prefs, setPrefs, devices, cast } = useApp();
   const [params] = useSearchParams();
+  const loc = useLocation();
   const [q, setQ] = useState(params.get('q') || '');
   const [kind, setKind] = useState(params.get('kind') || '');
   const input = useRef<HTMLInputElement>(null);
@@ -62,9 +63,9 @@ export function TopBar({ types = true, catalog = false }: { types?: boolean; cat
         </form>
         {catalog && (
           <div role="group" aria-label={tr('Тип', 'Type')} className="glass" style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 999, border: '1px solid var(--line)', boxShadow: '0 6px 20px var(--sh)' }}>
-            {[['', t('movies')], ['tv', t('shows')]].map(([k, label]) => {
-              const on = (params.get('kind') || '') === k;
-              return <button key={k} className={'pill' + (on ? ' on' : ' ghost')} aria-pressed={on} onClick={() => nav(k ? `/?kind=${k}` : '/')}>{label}</button>;
+            {[['', t('movies')], ['tv', t('shows')], ['people', t('people')]].map(([k, label]) => {
+              const on = k === 'people' ? loc.pathname === '/people' : loc.pathname === '/' && (params.get('kind') || '') === k;
+              return <button key={k} className={'pill' + (on ? ' on' : ' ghost')} aria-pressed={on} onClick={() => nav(k === 'people' ? '/people' : k ? `/?kind=${k}` : '/')}>{label}</button>;
             })}
           </div>
         )}

@@ -5,6 +5,7 @@ import { t, tr } from '../i18n';
 import { Icon } from './Icon';
 import { CastDialog } from './CastDialog';
 import { Dots } from './Dots';
+import { PreviewLayer } from './Preview';
 import { installDragScroll } from './dragScroll';
 import { installTorrentDrop } from './torrentDrop';
 
@@ -60,6 +61,7 @@ export function Shell() {
         </nav>
         <PageBoundary key={loc.pathname}><Outlet /></PageBoundary>
         <CastDialog />
+        <PreviewLayer />
       </div>
     </AmbientCtx.Provider>
   );
