@@ -59,7 +59,7 @@ export default function Catalog() {
           style={{ marginLeft: 'auto', flex: '0 1 360px', display: 'flex', alignItems: 'center', gap: 10, height: 44, padding: '0 16px', borderRadius: 999, border: '1px solid var(--line)', color: 'var(--mut)' }}>
           <Icon name="search" size={18} />
           <input value={text} onChange={(e) => setText(e.target.value)} placeholder={tr('Найти в каталоге', 'Search the catalog')} aria-label={tr('Поиск в каталоге', 'Search the catalog')}
-            style={{ flex: 1, minWidth: 0, border: 0, outline: 'none', background: 'transparent', font: "500 14px 'Inter',sans-serif", color: 'var(--fg)' }} />
+            style={{ flex: 1, minWidth: 0, border: 0, outline: 'none', background: 'transparent', font: "500 calc(14px * var(--fs)) 'Inter',sans-serif", color: 'var(--fg)' }} />
           {q && <button type="button" className="ri" style={{ width: 28, height: 28 }} aria-label={tr('Очистить', 'Clear')} onClick={() => set({ q: '' })}><Icon name="close" size={14} /></button>}
         </form>
       </div>
@@ -94,7 +94,7 @@ export default function Catalog() {
         <Row key={kind + l} path={`/api/catalog${qs({ kind, list: l })}`} title={tr(r, e)} more={`/catalog${qs({ kind: kind === 'tv' ? 'tv' : '', list: l })}`} />
       )))}
 
-      <p style={{ margin: 0, fontSize: 12, color: 'var(--mut)' }}>{tr('Данные и постеры — TMDB. Раздачи ищутся только в ваших источниках Torznab (Jackett / Prowlarr).', 'Data and posters from TMDB. Releases are searched only on your own Torznab sources (Jackett / Prowlarr).')}</p>
+      <p style={{ margin: 0, fontSize: 'calc(12px * var(--fs))', color: 'var(--mut)' }}>{tr('Данные и постеры — TMDB. Раздачи ищутся только в ваших источниках Torznab (Jackett / Prowlarr).', 'Data and posters from TMDB. Releases are searched only on your own Torznab sources (Jackett / Prowlarr).')}</p>
     </main>
   );
 }
@@ -157,12 +157,12 @@ export function CatalogCard({ x, showKind }: { x: CatalogItem; showKind?: boolea
       <Art className="pimg" src={x.poster} title={x.title} style={{ aspectRatio: '2/3', borderRadius: 12 }}
         label={
           <>
-            {!x.poster && <span className="disp" style={{ position: 'absolute', left: 12, right: 12, bottom: 14, color: '#FFFFFF', fontSize: 20, fontWeight: 600, lineHeight: 1 }}>{x.title}</span>}
+            {!x.poster && <span className="disp" style={{ position: 'absolute', left: 12, right: 12, bottom: 14, color: '#FFFFFF', fontSize: 'calc(20px * var(--fs))', fontWeight: 600, lineHeight: 1 }}>{x.title}</span>}
             {x.rating > 0 && <span className="tag" style={{ position: 'absolute', top: 8, left: 8, background: x.rating >= 7 ? '#2F9E62' : x.rating >= 5.5 ? '#000000A0' : '#8E3B4F', color: '#FFFFFF' }}>{x.rating.toFixed(1)}</span>}
           </>
         } />
       <div>
-        <div style={{ fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={x.title}>{x.title}</div>
+        <div style={{ fontSize: 'calc(14px * var(--fs))', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={x.title}>{x.title}</div>
         <div className="sub">{[x.year || '', showKind ? (x.kind === 'tv' ? tr('сериал', 'show') : tr('фильм', 'movie')) : ''].filter(Boolean).join(' · ')}</div>
       </div>
     </Link>

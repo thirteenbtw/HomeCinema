@@ -106,21 +106,21 @@ function Detail({ kind, item, show, nextUp, similar = [], compat = [], reload }:
         )}
         <div aria-hidden="true" style={{ position: 'absolute', width: 440, height: 440, margin: '-220px 0 0 -220px', left: par.sx, top: par.sy, borderRadius: '50%', background: orb, filter: 'blur(70px)', opacity: live && par.hover ? 0.5 : 0, mixBlendMode: 'screen', transition: 'opacity .4s', pointerEvents: 'none' }} />
         <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg,#000000B8 0%,#00000073 50%,transparent 80%)' }} />
-        <nav aria-label={tr('Путь', 'Breadcrumb')} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600 }}>
+        <nav aria-label={tr('Путь', 'Breadcrumb')} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6, fontSize: 'calc(12px * var(--fs))', fontWeight: 600 }}>
           <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 10px', borderRadius: 999, background: '#FFFFFF2E', color: '#FFFFFF' }}><Icon name="left" size={14} />{t('home')}</Link>
           <span style={{ color: '#C9CCD1' }}>›</span><span>{title}{year ? ` (${year})` : ''}</span>
         </nav>
         <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 640, marginTop: 24 }}>
-          <div className="disp" style={{ fontSize: 'clamp(44px,7vw,80px)', lineHeight: 0.9, fontWeight: 600, letterSpacing: '.05em' }}>{title}</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 13, fontWeight: 600 }}>
+          <div className="disp" style={{ fontSize: 'calc(clamp(44px,7vw,80px) * var(--fs))', lineHeight: 0.9, fontWeight: 600, letterSpacing: '.05em' }}>{title}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 'calc(13px * var(--fs))', fontWeight: 600 }}>
             {meta}
-            {item?.cert && <span style={{ fontSize: 11, padding: '2px 7px', border: '1px solid #FFFFFF66', borderRadius: 4 }}>{item.cert}</span>}
-            {rating > 0 && <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 4, background: '#01B4E4', color: '#06222C' }}>TMDB {rating.toFixed(1)}</span>}
-            {item?.quality && <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 4, background: '#FFFFFF2E' }}>{item.quality}</span>}
-            {show && <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 4, background: '#FFFFFF2E' }}>{seasons.length} {tr('сез.', 'seasons')} · {show.episodes} {t('episodes')}</span>}
+            {item?.cert && <span style={{ fontSize: 'calc(11px * var(--fs))', padding: '2px 7px', border: '1px solid #FFFFFF66', borderRadius: 4 }}>{item.cert}</span>}
+            {rating > 0 && <span style={{ fontSize: 'calc(11px * var(--fs))', padding: '2px 7px', borderRadius: 4, background: '#01B4E4', color: '#06222C' }}>TMDB {rating.toFixed(1)}</span>}
+            {item?.quality && <span style={{ fontSize: 'calc(11px * var(--fs))', padding: '2px 7px', borderRadius: 4, background: '#FFFFFF2E' }}>{item.quality}</span>}
+            {show && <span style={{ fontSize: 'calc(11px * var(--fs))', padding: '2px 7px', borderRadius: 4, background: '#FFFFFF2E' }}>{seasons.length} {tr('сез.', 'seasons')} · {show.episodes} {t('episodes')}</span>}
           </div>
           {prog && prog.duration > 0 && !prog.watched && prog.position > 30 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, maxWidth: 380, fontSize: 12, color: '#D4D7DC' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, maxWidth: 380, fontSize: 'calc(12px * var(--fs))', color: '#D4D7DC' }}>
               <div style={{ flex: 1, height: 4, borderRadius: 2, background: '#FFFFFF33' }}><div style={{ width: `${(prog.position / prog.duration) * 100}%`, height: 4, borderRadius: 2, background: 'var(--acc)' }} /></div>
               {fmtTime(prog.position)} {tr('из', 'of')} {fmtTime(prog.duration)}
             </div>
@@ -137,7 +137,7 @@ function Detail({ kind, item, show, nextUp, similar = [], compat = [], reload }:
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32 }}>
         <div style={{ flex: '999 1 480px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 28 }}>
-          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.65, color: 'var(--fg2)', maxWidth: 680 }}>{overview || t('noOverview')}</p>
+          <p style={{ margin: 0, fontSize: 'calc(14px * var(--fs))', lineHeight: 1.65, color: 'var(--fg2)', maxWidth: 680 }}>{overview || t('noOverview')}</p>
 
           {show && seasons.length > 0 && (
             <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -155,7 +155,7 @@ function Detail({ kind, item, show, nextUp, similar = [], compat = [], reload }:
                       <Art src={e.backdrop} title={title + e.episode} disc="wide" style={{ width: 160, aspectRatio: '16/9', borderRadius: 8, flex: 'none' }}
                         label={<div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: '#FFFFFF33' }}><div style={{ height: 3, width: `${pct * 100}%`, background: 'var(--acc)' }} /></div>} />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: 14 }}>{e.episode}. {e.epTitle || `${tr('Серия', 'Episode')} ${e.episode}`}{p?.watched && <span className="tag" style={{ marginLeft: 8, background: 'var(--ok-bg)', color: 'var(--ok-fg)' }}>{t('watched')}</span>}</div>
+                        <div style={{ fontWeight: 700, fontSize: 'calc(14px * var(--fs))' }}>{e.episode}. {e.epTitle || `${tr('Серия', 'Episode')} ${e.episode}`}{p?.watched && <span className="tag" style={{ marginLeft: 8, background: 'var(--ok-bg)', color: 'var(--ok-fg)' }}>{t('watched')}</span>}</div>
                         <div className="sub" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginTop: 4 }}>{e.overview || [e.quality, e.runtime ? fmtRuntime(e.runtime) : ''].filter(Boolean).join(' · ')}</div>
                       </div>
                       {ef && <Link className="btn btn-l sm" to={`/play/${ef.id}?item=${e.id}${p && !p.watched && p.position > 30 ? '&start=' + Math.floor(p.position) : ''}`} aria-label={`${t('watch')} ${e.episode}`}><PlayGlyph size={14} /></Link>}
@@ -173,10 +173,10 @@ function Detail({ kind, item, show, nextUp, similar = [], compat = [], reload }:
                 {cast.slice(0, 12).map((a) => (
                   <Link key={a.name + a.role} to={`/search?q=${encodeURIComponent(a.name)}&kind=people`} className="castcard" style={{ position: 'relative', aspectRatio: '3/4', borderRadius: 10, overflow: 'hidden', background: '#3A3B3E', color: '#FFFFFF' }}>
                     {a.photo ? <img src={a.photo} alt="" loading="lazy" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-                      : <span className="disp" aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: '28%', textAlign: 'center', fontSize: 36, fontWeight: 600, color: '#FFFFFF59' }}>{initials(a.name)}</span>}
+                      : <span className="disp" aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: '28%', textAlign: 'center', fontSize: 'calc(36px * var(--fs))', fontWeight: 600, color: '#FFFFFF59' }}>{initials(a.name)}</span>}
                     <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 50%,#000000C0)' }} />
-                    <span style={{ position: 'absolute', left: 10, right: 10, bottom: 22, fontSize: 12, fontWeight: 700 }}>{a.name}</span>
-                    <span style={{ position: 'absolute', left: 10, right: 10, bottom: 8, fontSize: 11, color: '#D9DBDF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.role}</span>
+                    <span style={{ position: 'absolute', left: 10, right: 10, bottom: 22, fontSize: 'calc(12px * var(--fs))', fontWeight: 700 }}>{a.name}</span>
+                    <span style={{ position: 'absolute', left: 10, right: 10, bottom: 8, fontSize: 'calc(11px * var(--fs))', color: '#D9DBDF', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.role}</span>
                   </Link>
                 ))}
               </div>
@@ -189,7 +189,7 @@ function Detail({ kind, item, show, nextUp, similar = [], compat = [], reload }:
                 {similar.map((r) => (
                   <Link key={r.id} to={`/movie/${r.id}`} style={{ color: '#FFFFFF' }}>
                     <Art src={r.backdrop} title={r.title} disc="wide" style={{ aspectRatio: '16/10', borderRadius: 8 }}
-                      label={<><div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 50%,#000000A0)' }} /><span className="disp" style={{ position: 'absolute', left: 10, bottom: 10, right: 10, fontSize: 18, fontWeight: 600, lineHeight: 1 }}>{r.title}</span></>} />
+                      label={<><div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 50%,#000000A0)' }} /><span className="disp" style={{ position: 'absolute', left: 10, bottom: 10, right: 10, fontSize: 'calc(18px * var(--fs))', fontWeight: 600, lineHeight: 1 }}>{r.title}</span></>} />
                   </Link>
                 ))}
               </div>
@@ -200,7 +200,7 @@ function Detail({ kind, item, show, nextUp, similar = [], compat = [], reload }:
         <aside style={{ flex: '1 1 320px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
           {file && (
             <section className="card solid">
-              <h2 className="h2" style={{ fontSize: 14 }}>{t('tracks')}</h2>
+              <h2 className="h2" style={{ fontSize: 'calc(14px * var(--fs))' }}>{t('tracks')}</h2>
               <label className="fld">{t('audio')}
                 <select className="sel" value={audio ?? ''} onChange={(e) => setAudio(Number(e.target.value))}>
                   {(file.audio || []).map((a, i) => <option key={a.index} value={a.index}>{trackName(a.lang, a.title, i)} — {codecName(a.codec)}{a.channels ? ' ' + channels(a.channels) : ''}</option>)}
@@ -216,9 +216,9 @@ function Detail({ kind, item, show, nextUp, similar = [], compat = [], reload }:
           )}
           {compat.length > 0 && (
             <section className="card solid">
-              <h2 className="h2" style={{ fontSize: 14 }}>{t('whereplays')}</h2>
+              <h2 className="h2" style={{ fontSize: 'calc(14px * var(--fs))' }}>{t('whereplays')}</h2>
               {compat.map((d) => (
-                <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
+                <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 'calc(13px * var(--fs))' }}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: d.status === 'direct' ? '#2F9E62' : '#E08A00', flex: 'none' }} />
                   <span style={{ flex: 1, fontWeight: 600 }}>{d.name}</span>
                   <span style={{ color: 'var(--mut2)', textAlign: 'right' }}>{d.mode}</span>
@@ -228,9 +228,9 @@ function Detail({ kind, item, show, nextUp, similar = [], compat = [], reload }:
           )}
           {file && (
             <section className="card solid">
-              <h2 className="h2" style={{ fontSize: 14 }}>{t('file')}</h2>
-              <div className="mono" style={{ fontSize: 11, color: 'var(--mut2)', wordBreak: 'break-all' }}>{file.name}</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '6px 14px', fontSize: 12 }}>
+              <h2 className="h2" style={{ fontSize: 'calc(14px * var(--fs))' }}>{t('file')}</h2>
+              <div className="mono" style={{ fontSize: 'calc(11px * var(--fs))', color: 'var(--mut2)', wordBreak: 'break-all' }}>{file.name}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '6px 14px', fontSize: 'calc(12px * var(--fs))' }}>
                 <span style={{ color: 'var(--mut)' }}>{t('video')}</span><span>{codecName(file.videoCodec)}{file.bitDepth > 8 ? ` ${file.bitDepth}-bit` : ''} · {file.width}×{file.height}{file.hdr ? ' · ' + file.hdr : ''}</span>
                 <span style={{ color: 'var(--mut)' }}>{t('audio')}</span><span>{(file.audio || []).length} {tr('дорожки', 'tracks')}</span>
                 <span style={{ color: 'var(--mut)' }}>{t('subtitles')}</span><span>{(file.subs || []).length}{(file.subs || []).some((s) => s.external) ? `, ${tr('из них', 'incl.')} ${(file.subs || []).filter((s) => s.external).length} ${tr('внешние', 'external')}` : ''}</span>

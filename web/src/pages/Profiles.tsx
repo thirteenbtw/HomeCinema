@@ -28,13 +28,13 @@ export default function ProfilesPage() {
   const list = state?.profiles || [];
   return (
     <main className="main pad" style={{ alignItems: 'center', justifyContent: 'center', minHeight: '80vh', textAlign: 'center' }}>
-      <h1 className="h1" style={{ fontSize: 34 }}>{tr('Кто смотрит?', "Who's watching?")}</h1>
+      <h1 className="h1" style={{ fontSize: 'calc(34px * var(--fs))' }}>{tr('Кто смотрит?', "Who's watching?")}</h1>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 28, justifyContent: 'center' }}>
         {list.map((p) => (
           <button key={p.id} onClick={() => (p.hasPin ? setPinFor(p) : pick(p))} aria-current={p.id === state?.profileId}
             style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, border: 0, background: 'transparent', cursor: 'pointer', color: 'var(--fg)', fontFamily: 'inherit' }}>
             <span style={{ borderRadius: '50%', boxShadow: p.id === state?.profileId ? '0 0 0 3px var(--bg), 0 0 0 5px var(--acc)' : 'none' }}><Avatar p={p} size={96} /></span>
-            <span style={{ fontWeight: 700, fontSize: 15 }}>{p.name}</span>
+            <span style={{ fontWeight: 700, fontSize: 'calc(15px * var(--fs))' }}>{p.name}</span>
             <span className="sub">{[p.hasPin ? 'PIN' : '', p.isKid ? tr('Детский', 'Kids') : ''].filter(Boolean).join(' · ') || ' '}</span>
           </button>
         ))}
@@ -44,7 +44,7 @@ export default function ProfilesPage() {
       {pinFor && (
         <Modal title={`${tr('PIN для', 'PIN for')} ${pinFor.name}`} onClose={() => { setPinFor(null); setErr(null); setPin(''); }}>
           <form className="row" onSubmit={(e) => { e.preventDefault(); pick(pinFor, pin); }}>
-            <input className="inp mono" type="password" inputMode="numeric" autoFocus maxLength={8} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} aria-label="PIN" style={{ flex: 1, fontSize: 20, letterSpacing: '.4em', textAlign: 'center' }} />
+            <input className="inp mono" type="password" inputMode="numeric" autoFocus maxLength={8} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} aria-label="PIN" style={{ flex: 1, fontSize: 'calc(20px * var(--fs))', letterSpacing: '.4em', textAlign: 'center' }} />
             <button className="btn btn-d sm" disabled={pin.length < 4}>{tr('Войти', 'Enter')}</button>
           </form>
           {err && <div className="err">{err}</div>}
@@ -81,15 +81,15 @@ export function ProfilesEditor() {
         {list.map((p, i) => (
           <button key={p.id} onClick={() => setEdit({ ...p })} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--fg)', minWidth: 72 }}>
             <Avatar p={p} />
-            <span style={{ fontSize: 12, fontWeight: 600 }}>{p.name}</span>
-            <span style={{ fontSize: 11, color: 'var(--mut)' }}>{i === 0 ? tr('Владелец', 'Owner') : [p.hasPin ? 'PIN' : '', p.isKid ? tr('Детский', 'Kids') : ''].filter(Boolean).join(' · ') || ' '}</span>
+            <span style={{ fontSize: 'calc(12px * var(--fs))', fontWeight: 600 }}>{p.name}</span>
+            <span style={{ fontSize: 'calc(11px * var(--fs))', color: 'var(--mut)' }}>{i === 0 ? tr('Владелец', 'Owner') : [p.hasPin ? 'PIN' : '', p.isKid ? tr('Детский', 'Kids') : ''].filter(Boolean).join(' · ') || ' '}</span>
           </button>
         ))}
         {list.length < MAX && (
           <button onClick={() => setEdit({ name: '', color: colors[list.length % colors.length] })} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--fg)', minWidth: 72 }}>
-            <span style={{ width: 56, height: 56, borderRadius: '50%', background: '#8E9196', color: '#FFFFFF', display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: 20 }}>+</span>
-            <span style={{ fontSize: 12, fontWeight: 600 }}>{tr('Добавить', 'Add')}</span>
-            <span style={{ fontSize: 11, color: 'var(--mut)' }}>{list.length}/{MAX}</span>
+            <span style={{ width: 56, height: 56, borderRadius: '50%', background: '#8E9196', color: '#FFFFFF', display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: 'calc(20px * var(--fs))' }}>+</span>
+            <span style={{ fontSize: 'calc(12px * var(--fs))', fontWeight: 600 }}>{tr('Добавить', 'Add')}</span>
+            <span style={{ fontSize: 'calc(11px * var(--fs))', color: 'var(--mut)' }}>{list.length}/{MAX}</span>
           </button>
         )}
       </div>

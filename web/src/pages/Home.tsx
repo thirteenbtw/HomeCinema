@@ -65,7 +65,7 @@ export default function Home() {
       {empty && (
         <div className="empty glass">
           <Icon name="folder" size={32} />
-          <div style={{ fontWeight: 700, color: 'var(--fg)', fontSize: 16 }}>{t('libEmpty')}</div>
+          <div style={{ fontWeight: 700, color: 'var(--fg)', fontSize: 'calc(16px * var(--fs))' }}>{t('libEmpty')}</div>
           <div>{t('libEmptyHint')}</div>
           <Link className="btn btn-r" to="/settings#lib"><Icon name="plus" size={16} />{t('addFolder')}</Link>
         </div>
@@ -78,8 +78,8 @@ export default function Home() {
         <section aria-label={tr('Жанры', 'Genres')} className="scroll-x" style={{ gap: 10 }}>
           {data.genres.slice(0, 14).map((g) => (
             <Link key={g} to={`/library/movies?genre=${encodeURIComponent(g)}`} style={{ flex: '0 0 168px', height: 64, borderRadius: 10, background: paletteFor(g)[0], padding: '10px 12px', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', color: '#FFFFFF' }}>
-              <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.12em', color: '#FF9AA0' }}>{t('genre')}</span>
-              <span className="disp" style={{ fontSize: 20, fontWeight: 600, lineHeight: 1 }}>{g}</span>
+              <span style={{ fontSize: 'calc(9px * var(--fs))', fontWeight: 700, letterSpacing: '.12em', color: '#FF9AA0' }}>{t('genre')}</span>
+              <span className="disp" style={{ fontSize: 'calc(20px * var(--fs))', fontWeight: 600, lineHeight: 1 }}>{g}</span>
             </Link>
           ))}
         </section>
@@ -96,7 +96,7 @@ export default function Home() {
                 <Link key={c.id} to={`/play/${c.files?.[0]?.id ?? ''}?item=${c.id}`} state={{ itemId: c.id }} style={{ display: 'flex', flexDirection: 'column', gap: 8, color: 'var(--fg)' }}
                   onClick={(e) => { if (!c.files?.length) { e.preventDefault(); } }}>
                   <ContinueCard item={c} pct={pct} />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 'calc(12px * var(--fs))' }}>
                     <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sub}</span>
                     <span style={{ color: 'var(--mut)', whiteSpace: 'nowrap' }}>{fmtLeft(p.duration - p.position, t)}</span>
                   </div>
@@ -113,11 +113,11 @@ export default function Home() {
             {data.popular.map((p, i) => (
               <Link key={p.id} to={itemLink(p)} style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', gap: 6, color: 'var(--fg)' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                  <span className="disp" aria-hidden="true" style={{ fontSize: 96, lineHeight: 0.8, fontWeight: 700, color: 'var(--bg)', WebkitTextStroke: '2px var(--num)', marginRight: -14 }}>{i + 1}</span>
+                  <span className="disp" aria-hidden="true" style={{ fontSize: 'calc(96px * var(--fs))', lineHeight: 0.8, fontWeight: 700, color: 'var(--bg)', WebkitTextStroke: '2px var(--num)', marginRight: -14 }}>{i + 1}</span>
                   <Art src={p.kind === 'episode' ? undefined : p.poster} title={itemName(p)} style={{ width: 120, height: 178, borderRadius: 8, boxShadow: '0 4px 14px var(--sh)' }}
-                    label={!p.poster ? <span className="disp" style={{ position: 'absolute', left: 8, right: 8, bottom: 10, fontSize: 17, fontWeight: 600, lineHeight: 1, color: '#FFFFFF' }}>{itemName(p)}</span> : undefined} />
+                    label={!p.poster ? <span className="disp" style={{ position: 'absolute', left: 8, right: 8, bottom: 10, fontSize: 'calc(17px * var(--fs))', fontWeight: 600, lineHeight: 1, color: '#FFFFFF' }}>{itemName(p)}</span> : undefined} />
                 </div>
-                <span style={{ fontSize: 11, color: 'var(--mut)', paddingLeft: 40, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 'calc(11px * var(--fs))', color: 'var(--mut)', paddingLeft: 40, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {[p.genres[0], p.year || ''].filter(Boolean).join(' · ')}
                 </span>
               </Link>
@@ -134,8 +134,8 @@ export default function Home() {
                 <Art src={r.backdrop || r.poster} title={itemName(r)} disc="wide" style={{ aspectRatio: '16/10', borderRadius: 8 }}
                   label={<>
                     {(r.backdrop || r.poster) && <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 40%, #000000B0)' }} />}
-                    <span className="disp" style={{ position: 'absolute', left: 10, right: 10, bottom: 26, fontSize: 18, fontWeight: 600, lineHeight: 1 }}>{itemName(r)}</span>
-                    <span style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '4px 10px', fontSize: 10, fontWeight: 700, background: 'var(--acc)' }}>{recentTag(r)}</span>
+                    <span className="disp" style={{ position: 'absolute', left: 10, right: 10, bottom: 26, fontSize: 'calc(18px * var(--fs))', fontWeight: 600, lineHeight: 1 }}>{itemName(r)}</span>
+                    <span style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '4px 10px', fontSize: 'calc(10px * var(--fs))', fontWeight: 700, background: 'var(--acc)' }}>{recentTag(r)}</span>
                   </>} />
               </Link>
             ))}
@@ -161,8 +161,8 @@ function ContinueCard({ item, pct }: { item: Item; pct: number }) {
     <Art src={item.backdrop} title={itemName(item)} disc="wide" style={{ aspectRatio: '16/9', borderRadius: 12 }}
       label={<>
         {item.backdrop && <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 45%, #000000B0)' }} />}
-        <span className="disp" style={{ position: 'absolute', left: 12, bottom: 14, right: 12, fontSize: 20, fontWeight: 600, color: '#FFFFFF', lineHeight: 1 }}>{itemName(item)}</span>
-        <span style={{ position: 'absolute', right: 10, top: 10, fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 999, background: '#000000A0', color: '#FFFFFF' }}>
+        <span className="disp" style={{ position: 'absolute', left: 12, bottom: 14, right: 12, fontSize: 'calc(20px * var(--fs))', fontWeight: 600, color: '#FFFFFF', lineHeight: 1 }}>{itemName(item)}</span>
+        <span style={{ position: 'absolute', right: 10, top: 10, fontSize: 'calc(11px * var(--fs))', fontWeight: 700, padding: '3px 8px', borderRadius: 999, background: '#000000A0', color: '#FFFFFF' }}>
           {item.progress?.device === 'tv' ? tr('ТВ', 'TV') : tr('ПК', 'PC')}
         </span>
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 4, background: '#FFFFFF33' }}><div style={{ height: 4, width: `${pct * 100}%`, background: 'var(--acc)' }} /></div>
@@ -212,13 +212,13 @@ function Hero({ film, spot, hover, live, mv, onMove, onLeave, dots, idx, setIdx,
       )}
 
       <div style={{ position: 'relative', padding: 40, maxWidth: 560, display: 'flex', flexDirection: 'column', gap: 12, color: '#FFFFFF' }}>
-        <div className="disp" style={{ fontSize: 'clamp(40px,6vw,64px)', lineHeight: 0.92, fontWeight: 600, letterSpacing: '.06em' }}>{name}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 13, fontWeight: 600 }}>
+        <div className="disp" style={{ fontSize: 'calc(clamp(40px,6vw,64px) * var(--fs))', lineHeight: 0.92, fontWeight: 600, letterSpacing: '.06em' }}>{name}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 'calc(13px * var(--fs))', fontWeight: 600 }}>
           {meta}
-          {isNew && <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 999, background: 'var(--acc)' }}>{film.source === 'torrent' ? tr('Из торрента', 'From torrent') : tr('Новое', 'New')}</span>}
-          {film.quality && <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 999, background: '#FFFFFF2E' }}>{film.quality}</span>}
+          {isNew && <span style={{ fontSize: 'calc(11px * var(--fs))', padding: '3px 8px', borderRadius: 999, background: 'var(--acc)' }}>{film.source === 'torrent' ? tr('Из торрента', 'From torrent') : tr('Новое', 'New')}</span>}
+          {film.quality && <span style={{ fontSize: 'calc(11px * var(--fs))', padding: '3px 8px', borderRadius: 999, background: '#FFFFFF2E' }}>{film.quality}</span>}
         </div>
-        {film.overview && <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: '#D4D7DC', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{film.overview}</p>}
+        {film.overview && <p style={{ margin: 0, fontSize: 'calc(14px * var(--fs))', lineHeight: 1.55, color: '#D4D7DC', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{film.overview}</p>}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingTop: 6 }}>
           {fileId && <Link className="btn btn-w" to={`/play/${fileId}?item=${film.id}`}><PlayGlyph />{film.progress && !film.progress.watched && film.progress.position > 30 ? t('continue') : t('watch')}</Link>}
           {fileId && <button className="btn btn-g" onClick={onCast}><Icon name="cast" size={18} />{t('toTv')}</button>}
@@ -232,7 +232,7 @@ function Hero({ film, spot, hover, live, mv, onMove, onLeave, dots, idx, setIdx,
 function ScanBar({ st }: { st: ScanStatus }) {
   const pct = st.total ? st.done / st.total : 1;
   return (
-    <div className="glass" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14, padding: '12px 16px', borderRadius: 12, border: '1px solid var(--line)', fontSize: 12, color: 'var(--mut2)' }}>
+    <div className="glass" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14, padding: '12px 16px', borderRadius: 12, border: '1px solid var(--line)', fontSize: 'calc(12px * var(--fs))', color: 'var(--mut2)' }}>
       <Icon name="refresh" size={16} style={{ color: 'var(--acct)' }} />
       {st.scanning ? (
         <span>{t('scanning')} <span className="mono" style={{ color: 'var(--fg)' }}>{st.library}</span>{st.added ? ` — ${tr('найдено', 'found')} ${st.added} ${tr('новых файлов', 'new files')}` : ''}</span>

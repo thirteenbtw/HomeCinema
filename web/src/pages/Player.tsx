@@ -290,11 +290,11 @@ export default function Player() {
 
       <header style={{ position: 'absolute', left: 0, right: 0, top: 0, minHeight: 64, display: 'flex', alignItems: 'center', gap: 16, padding: '0 20px', background: 'linear-gradient(#000000E6,#00000000)', opacity: showUI ? 1 : 0, transition: 'opacity .3s' }}>
         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <span style={{ fontSize: 14, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pb?.title || tr('Загрузка…', 'Loading…')}</span>
-          <span style={{ fontSize: 12, color: '#A9ADB4' }} title={pb?.reason}>{pb ? [pb.info || pb.summary, pb.encoder && pb.mode === 'hls' ? pb.encoder.toUpperCase() : ''].filter(Boolean).join(' · ') : ''}</span>
+          <span style={{ fontSize: 'calc(14px * var(--fs))', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pb?.title || tr('Загрузка…', 'Loading…')}</span>
+          <span style={{ fontSize: 'calc(12px * var(--fs))', color: '#A9ADB4' }} title={pb?.reason}>{pb ? [pb.info || pb.summary, pb.encoder && pb.mode === 'hls' ? pb.encoder.toUpperCase() : ''].filter(Boolean).join(' · ') : ''}</span>
         </div>
         {itemId > 0 && (
-          <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8, height: 30, padding: '0 12px', borderRadius: 999, background: '#FFFFFF1A', fontSize: 12, color: '#D4D7DC', whiteSpace: 'nowrap' }}>
+          <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8, height: 30, padding: '0 12px', borderRadius: 999, background: '#FFFFFF1A', fontSize: 'calc(12px * var(--fs))', color: '#D4D7DC', whiteSpace: 'nowrap' }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#3CCB7F' }} />{tr('Позиция сохраняется · синхр. с ТВ', 'Position is saved · synced with TV')}
           </span>
         )}
@@ -303,7 +303,7 @@ export default function Player() {
 
       {(waiting || !pb) && !err && (
         <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, fontSize: 13, color: '#D4D7DC' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, fontSize: 'calc(13px * var(--fs))', color: '#D4D7DC' }}>
             <span className="spin" style={{ width: 36, height: 36, borderWidth: 3, borderColor: '#FFFFFF33', borderTopColor: 'var(--acc)' }} />
             {stream && !stream.ready ? `${tr('Буферизация', 'Buffering')} ${fmtSize(stream.buffered)} / ${fmtSize(stream.target)} · ${stream.seeds} ${tr('сидов', 'seeds')}`
               : pb?.mode === 'hls' ? tr('Готовим поток…', 'Preparing stream…') : ''}
@@ -313,8 +313,8 @@ export default function Player() {
       {err && (
         <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', padding: 24 }}>
           <div style={{ maxWidth: 460, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'center' }}>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>{tr('Не удалось воспроизвести', 'Playback failed')}</div>
-            <div style={{ fontSize: 13, color: '#C9CCD1' }}>{err}</div>
+            <div style={{ fontSize: 'calc(16px * var(--fs))', fontWeight: 700 }}>{tr('Не удалось воспроизвести', 'Playback failed')}</div>
+            <div style={{ fontSize: 'calc(13px * var(--fs))', color: '#C9CCD1' }}>{err}</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
               <button className="btn btn-w sm" onClick={() => load(cur)}>{tr('Повторить', 'Retry')}</button>
               {state?.local && !hash && <button className="btn btn-g sm" onClick={external}>{tr('Внешний плеер', 'External player')}</button>}
@@ -326,13 +326,13 @@ export default function Player() {
 
       {subNow && (
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: showUI ? 150 : 60, textAlign: 'center', pointerEvents: 'none', transition: 'bottom .3s', padding: '0 24px' }}>
-          <span style={{ display: 'inline-block', padding: '4px 10px', background: '#000000B3', fontSize: 'clamp(18px,2.2vw,28px)', fontWeight: 600, lineHeight: 1.35, whiteSpace: 'pre-line' }}>{subNow}</span>
+          <span style={{ display: 'inline-block', padding: '4px 10px', background: '#000000B3', fontSize: 'calc(clamp(18px,2.2vw,28px) * var(--fs))', fontWeight: 600, lineHeight: 1.35, whiteSpace: 'pre-line' }}>{subNow}</span>
         </div>
       )}
 
       {countdown !== null && next && (
         <div style={{ position: 'absolute', right: 24, bottom: 120, width: 300, borderRadius: 16, background: '#FFFFFF', color: '#111214', padding: 16, display: 'flex', flexDirection: 'column', gap: 10, boxShadow: '0 20px 60px #00000080' }}>
-          <div style={{ fontSize: 12, color: '#6B6F76' }}>{tr('Следующая серия через', 'Next episode in')} {countdown} {tr('с', 's')}</div>
+          <div style={{ fontSize: 'calc(12px * var(--fs))', color: '#6B6F76' }}>{tr('Следующая серия через', 'Next episode in')} {countdown} {tr('с', 's')}</div>
           <div style={{ fontWeight: 700 }}>С{next.season}·Э{next.episode} {next.epTitle}</div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn btn-d sm" onClick={goNext}><PlayGlyph size={14} />{tr('Смотреть', 'Play')}</button>
@@ -342,11 +342,11 @@ export default function Player() {
       )}
 
       {panel && pb && (
-        <section aria-label={tr('Дорожки', 'Tracks')} style={{ position: 'absolute', right: 24, bottom: 108, width: 'min(340px, calc(100vw - 48px))', maxHeight: 'calc(100vh - 200px)', overflow: 'auto', borderRadius: 16, background: '#FFFFFF', color: '#111214', boxShadow: '0 20px 60px #00000080', padding: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <section aria-label={tr('Дорожки', 'Tracks')} style={{ position: 'absolute', right: 24, bottom: 108, width: 'min(340px, calc(var(--vw) - 48px))', maxHeight: 'calc(var(--vh) - 200px)', overflow: 'auto', borderRadius: 16, background: '#FFFFFF', color: '#111214', boxShadow: '0 20px 60px #00000080', padding: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div role="tablist" style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 999, background: '#F2F2F0', marginBottom: 6 }}>
             {([['subs', tr('Субтитры', 'Subtitles')], ['audio', tr('Аудио', 'Audio')], ['speed', tr('Скорость', 'Speed')]] as const).map(([k, l]) => (
               <button key={k} role="tab" aria-selected={panel === k} onClick={() => setPanel(k)}
-                style={{ flex: 1, height: 32, borderRadius: 999, border: 0, background: panel === k ? '#111214' : 'transparent', color: panel === k ? '#FFFFFF' : '#2A2C30', font: "600 12px 'Inter',sans-serif", cursor: 'pointer' }}>{l}</button>
+                style={{ flex: 1, height: 32, borderRadius: 999, border: 0, background: panel === k ? '#111214' : 'transparent', color: panel === k ? '#FFFFFF' : '#2A2C30', font: "600 calc(12px * var(--fs)) 'Inter',sans-serif", cursor: 'pointer' }}>{l}</button>
             ))}
           </div>
           {panel === 'subs' && (
@@ -356,35 +356,35 @@ export default function Player() {
                 const [name, ...meta] = s.label.split(' · ');
                 return <Opt key={s.index} on={s.index === subIdx} name={name} meta={meta.join(' · ') + (s.bitmap ? ' · ' + tr('вжигаются', 'burned in') : '')} onClick={() => pickSub(s.index)} />;
               })}
-              {pb.subs.length === 0 && <div style={{ fontSize: 12, color: '#6B6F76', padding: '4px 10px' }}>{hash ? tr('Субтитры потока доступны после загрузки', 'Stream subtitles appear after download') : tr('В файле нет субтитров. Положите .srt рядом с видео — он появится здесь.', 'No subtitles. Put an .srt next to the video.')}</div>}
+              {pb.subs.length === 0 && <div style={{ fontSize: 'calc(12px * var(--fs))', color: '#6B6F76', padding: '4px 10px' }}>{hash ? tr('Субтитры потока доступны после загрузки', 'Stream subtitles appear after download') : tr('В файле нет субтитров. Положите .srt рядом с видео — он появится здесь.', 'No subtitles. Put an .srt next to the video.')}</div>}
               <div style={{ height: 1, background: '#ECECE9', margin: '4px 0' }} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 10px', fontSize: 12, color: '#4A4D52' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 10px', fontSize: 'calc(12px * var(--fs))', color: '#4A4D52' }}>
                 {tr('Сдвиг', 'Offset')}
                 <button className="opt" aria-label={tr('Раньше на 0,1 с', 'Earlier by 0.1 s')} onClick={() => setSubDelay((d) => Math.round((d - 0.1) * 10) / 10)} style={{ width: 32, minHeight: 32, padding: 0, justifyContent: 'center', background: '#F2F2F0' }}>−</button>
                 <span className="mono">{subDelay >= 0 ? '+' : ''}{subDelay.toFixed(1)} {tr('с', 's')}</span>
                 <button className="opt" aria-label={tr('Позже на 0,1 с', 'Later by 0.1 s')} onClick={() => setSubDelay((d) => Math.round((d + 0.1) * 10) / 10)} style={{ width: 32, minHeight: 32, padding: 0, justifyContent: 'center', background: '#F2F2F0' }}>+</button>
                 {subDelay !== 0 && <button className="opt" onClick={() => setSubDelay(0)} style={{ width: 'auto', minHeight: 32 }}>{tr('Сброс', 'Reset')}</button>}
               </div>
-              {curSub && <div style={{ fontSize: 11, color: '#6B6F76', padding: '0 10px' }}>{tr('Сейчас:', 'Now:')} {curSub.label}</div>}
+              {curSub && <div style={{ fontSize: 'calc(11px * var(--fs))', color: '#6B6F76', padding: '0 10px' }}>{tr('Сейчас:', 'Now:')} {curSub.label}</div>}
             </>
           )}
           {panel === 'audio' && pb.audio.map((a) => {
             const [name, ...meta] = a.label.split(' · ');
             return <Opt key={a.index} on={a.selected} name={name} meta={meta.join(' · ')} onClick={() => pickAudio(a.index)} />;
           })}
-          {panel === 'audio' && pb.audio.length === 0 && <div style={{ fontSize: 12, color: '#6B6F76', padding: '4px 10px' }}>{tr('Звуковых дорожек нет', 'No audio tracks')}</div>}
+          {panel === 'audio' && pb.audio.length === 0 && <div style={{ fontSize: 'calc(12px * var(--fs))', color: '#6B6F76', padding: '4px 10px' }}>{tr('Звуковых дорожек нет', 'No audio tracks')}</div>}
           {panel === 'speed' && speeds.map((s) => <Opt key={s} on={speed === s} name={`${s}×`} onClick={() => { setSpeed(s); setPanel(null); }} />)}
         </section>
       )}
 
       <footer style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '12px 20px', background: 'linear-gradient(#00000000,#000000E6 40%)', display: 'flex', flexDirection: 'column', gap: 8, opacity: showUI ? 1 : 0, transition: 'opacity .3s', paddingTop: 32 }}>
         {stream && (
-          <div style={{ display: 'flex', gap: 14, fontSize: 11, color: '#A9ADB4' }} className="mono">
+          <div style={{ display: 'flex', gap: 14, fontSize: 'calc(11px * var(--fs))', color: '#A9ADB4' }} className="mono">
             <span>{tr('Загружено', 'Downloaded')} {Math.round(stream.progress * 100)}%</span><span>↓ {fmtSize(stream.down)}/s</span><span>{stream.seeds} {tr('сидов', 'seeds')} · {stream.peers} {tr('пиров', 'peers')}</span>
           </div>
         )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span className="mono" style={{ fontSize: 12, color: '#D4D7DC', minWidth: 52 }}>{fmtTime(cur)}</span>
+          <span className="mono" style={{ fontSize: 'calc(12px * var(--fs))', color: '#D4D7DC', minWidth: 52 }}>{fmtTime(cur)}</span>
           <div role="slider" tabIndex={0} aria-label={tr('Позиция', 'Position')} aria-valuemin={0} aria-valuemax={Math.round(duration)} aria-valuenow={Math.round(cur)} aria-valuetext={fmtTime(cur)}
             onMouseMove={(e) => setHover(barX(e))} onMouseLeave={() => setHover(null)} onClick={(e) => seek(barX(e).t)}
             onKeyDown={(e) => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') e.stopPropagation(); if (e.key === 'ArrowLeft') seek(cur - 5); if (e.key === 'ArrowRight') seek(cur + 5); }}
@@ -393,10 +393,10 @@ export default function Player() {
               <div style={{ position: 'absolute', left: 0, top: 0, height: 4, width: `${bpct * 100}%`, borderRadius: 2, background: '#FFFFFF59' }} />
               <div style={{ position: 'absolute', left: 0, top: 0, height: 4, width: `${pct * 100}%`, borderRadius: 2, background: 'var(--acc)' }} />
               <div style={{ position: 'absolute', left: `${pct * 100}%`, top: -5, width: 14, height: 14, marginLeft: -7, borderRadius: '50%', background: '#FFFFFF' }} />
-              {hover && <div style={{ position: 'absolute', left: hover.x, bottom: 14, transform: 'translateX(-50%)', padding: '3px 8px', borderRadius: 6, background: '#FFFFFF', color: '#111214', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>{fmtTime(hover.t)}</div>}
+              {hover && <div style={{ position: 'absolute', left: hover.x, bottom: 14, transform: 'translateX(-50%)', padding: '3px 8px', borderRadius: 6, background: '#FFFFFF', color: '#111214', fontSize: 'calc(11px * var(--fs))', fontWeight: 700, whiteSpace: 'nowrap' }}>{fmtTime(hover.t)}</div>}
             </div>
           </div>
-          <span className="mono" style={{ fontSize: 12, color: '#D4D7DC', minWidth: 60, textAlign: 'right' }}>−{fmtTime(Math.max(0, duration - cur))}</span>
+          <span className="mono" style={{ fontSize: 'calc(12px * var(--fs))', color: '#D4D7DC', minWidth: 60, textAlign: 'right' }}>−{fmtTime(Math.max(0, duration - cur))}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
           <button className="pb" onClick={toggle} aria-label={paused ? tr('Смотреть', 'Play') : tr('Пауза', 'Pause')}>{paused ? <PlayGlyph size={20} /> : <PauseGlyph size={20} />}</button>
@@ -405,10 +405,10 @@ export default function Player() {
           <button className="pb" onClick={() => setMuted((m) => !m)} aria-label={muted ? tr('Включить звук', 'Unmute') : tr('Выключить звук', 'Mute')}><Icon name={muted || vol === 0 ? 'mute' : 'volume'} /></button>
           <input type="range" className="rng" min={0} max={1} step={0.05} value={muted ? 0 : vol} aria-label={tr('Громкость', 'Volume')}
             onChange={(e) => { setVol(Number(e.target.value)); setMuted(false); }} style={{ width: 80 }} />
-          <span className="hk" style={{ marginLeft: 16, fontSize: 12, color: '#A9ADB4' }}>{tr('Пробел — пауза · ← → 10 с · F — экран · S — субтитры', 'Space — pause · ← → 10 s · F — fullscreen · S — subtitles')}</span>
+          <span className="hk" style={{ marginLeft: 16, fontSize: 'calc(12px * var(--fs))', color: '#A9ADB4' }}>{tr('Пробел — пауза · ← → 10 с · F — экран · S — субтитры', 'Space — pause · ← → 10 s · F — fullscreen · S — subtitles')}</span>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
-            {next && <button className="pb" onClick={goNext} aria-label={tr('Следующая серия', 'Next episode')} style={{ width: 'auto', padding: '0 12px', borderRadius: 999, font: "600 12px 'Inter',sans-serif" }}>{tr('След. серия', 'Next')} ›</button>}
-            <button className="pb" onClick={() => setPanel(panel === 'speed' ? null : 'speed')} aria-label={tr('Скорость', 'Speed')} style={{ width: 'auto', padding: '0 10px', borderRadius: 999, font: "700 12px 'Inter',sans-serif" }}>{speed}×</button>
+            {next && <button className="pb" onClick={goNext} aria-label={tr('Следующая серия', 'Next episode')} style={{ width: 'auto', padding: '0 12px', borderRadius: 999, font: "600 calc(12px * var(--fs)) 'Inter',sans-serif" }}>{tr('След. серия', 'Next')} ›</button>}
+            <button className="pb" onClick={() => setPanel(panel === 'speed' ? null : 'speed')} aria-label={tr('Скорость', 'Speed')} style={{ width: 'auto', padding: '0 10px', borderRadius: 999, font: "700 calc(12px * var(--fs)) 'Inter',sans-serif" }}>{speed}×</button>
             <button className="pb" onClick={() => setPanel(panel && panel !== 'speed' ? null : 'subs')} aria-label={tr('Дорожки и субтитры', 'Tracks and subtitles')} aria-expanded={!!panel} style={{ background: panel ? '#FFFFFF2E' : undefined }}><Icon name="subs" /></button>
             <button className="pb" onClick={castNow} aria-label={tr('Отправить на ТВ', 'Send to TV')}><Icon name="cast" /></button>
             {state?.local && !hash && <button className="pb" onClick={external} aria-label={tr('Открыть во внешнем плеере', 'Open in external player')}><Icon name="external" /></button>}
@@ -425,7 +425,7 @@ function Opt({ on, name, meta, onClick }: { on: boolean; name: string; meta?: st
     <button className="opt" onClick={onClick} aria-pressed={on}>
       <span style={{ width: 16, display: 'grid', placeItems: 'center', color: 'var(--acc-dk)' }}>{on && <Icon name="check" size={16} />}</span>
       <span style={{ flex: 1, fontWeight: on ? 700 : 500 }}>{name}</span>
-      {meta && <span style={{ fontSize: 11, color: '#6B6F76' }}>{meta}</span>}
+      {meta && <span style={{ fontSize: 'calc(11px * var(--fs))', color: '#6B6F76' }}>{meta}</span>}
     </button>
   );
 }

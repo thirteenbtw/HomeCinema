@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { api, type Check, type Indexer, type Library, type ScanStatus, type SearchPrefs, type Settings as S, type TorrentSettings } from '../api';
 import { useApp, useAsync } from '../state';
+import { setTextScale, textScale, textSteps } from '../zoom';
 import { setLang, tr } from '../i18n';
 import { Icon } from '../components/Icon';
 import { FolderPicker } from '../components/FolderPicker';
@@ -47,10 +48,10 @@ function TmdbAccess({ st, save }: { st: S; save: (p: Partial<Record<keyof S, str
       {sel === 'custom' && (
         <form className="row" onSubmit={(e) => { e.preventDefault(); apply({ tmdbVia: 'custom', tmdbApi: apiUrl.trim(), tmdbImg: imgUrl.trim() }); }}>
           <label className="fld" style={{ flex: '1 1 240px' }}>{tr('Адрес API', 'API address')}
-            <input className="inp mono" style={{ fontSize: 12 }} value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} placeholder="https://…/3" />
+            <input className="inp mono" style={{ fontSize: 'calc(12px * var(--fs))' }} value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} placeholder="https://…/3" />
           </label>
           <label className="fld" style={{ flex: '1 1 240px' }}>{tr('Адрес картинок', 'Images address')}
-            <input className="inp mono" style={{ fontSize: 12 }} value={imgUrl} onChange={(e) => setImgUrl(e.target.value)} placeholder="https://…/t/p" />
+            <input className="inp mono" style={{ fontSize: 'calc(12px * var(--fs))' }} value={imgUrl} onChange={(e) => setImgUrl(e.target.value)} placeholder="https://…/t/p" />
           </label>
           <button className="btn btn-d sm" style={{ alignSelf: 'flex-end' }} disabled={busy}>{tr('Сохранить', 'Save')}</button>
         </form>
@@ -135,7 +136,7 @@ function Look() {
                   <div style={{ display: 'flex', gap: 4 }}>{[0, 1, 2].map((i) => <span key={i} style={{ flex: 1, height: 18, borderRadius: 4, background: t.card }} />)}</div>
                 </div>
               </div>
-              <span style={{ fontSize: 13, fontWeight: 700 }}>{tr(t.ru, t.en)}</span>
+              <span style={{ fontSize: 'calc(13px * var(--fs))', fontWeight: 700 }}>{tr(t.ru, t.en)}</span>
               <span className="sub" style={{ marginTop: -6 }}>{tr(t.noteRu, t.noteEn)}</span>
             </button>
           );
@@ -164,11 +165,31 @@ function Look() {
       <div className="row" style={{ gap: 16 }}>
         <label htmlFor="int" style={{ fontWeight: 600, minWidth: 120 }}>{tr('Яркость фона', 'Background intensity')}</label>
         <input id="int" className="rng" type="range" min={0} max={200} step={10} value={prefs.intensity} disabled={prefs.bg === 'off'} onChange={(e) => setPrefs({ intensity: Number(e.target.value) })} style={{ flex: '0 1 280px' }} />
-        <span className="mono" style={{ fontSize: 12, color: 'var(--mut)' }}>{prefs.intensity}%</span>
+        <span className="mono" style={{ fontSize: 'calc(12px * var(--fs))', color: 'var(--mut)' }}>{prefs.intensity}%</span>
       </div>
+      <TextSize />
       <label className="chk"><input type="checkbox" checked={prefs.posterTint} onChange={(e) => setPrefs({ posterTint: e.target.checked })} />{tr('Подстраивать цвет фона под постер текущего фильма', 'Tint the background with the current poster')}</label>
       <div className="sub">{tr('Если в системе включено «Уменьшить движение», живой фон и параллакс замирают автоматически.', 'With the system “reduce motion” setting, the live background and parallax stay still.')}</div>
     </Card>
+  );
+}
+
+// Text size of this device (like the Ctrl ± scale, it is not tied to a profile).
+function TextSize() {
+  const [v, setV] = useState(textScale());
+  return (
+    <div className="row">
+      <span style={{ fontWeight: 600, minWidth: 120 }}>{tr('Размер текста', 'Text size')}</span>
+      <div role="radiogroup" aria-label={tr('Размер текста', 'Text size')} style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {textSteps.map((x) => (
+          <button key={x} className="pill" role="radio" aria-checked={v === x} onClick={() => { setTextScale(x); setV(x); }}
+            style={v === x ? { background: 'var(--acc)', color: '#FFFFFF' } : undefined}>
+            <span style={{ fontSize: `${Math.round(13 * x)}px` }}>Аа</span>{Math.round(x * 100)}%
+          </button>
+        ))}
+      </div>
+      <span className="sub">{tr('Масштаб всего интерфейса — Ctrl + «+» / «−», сброс — Ctrl + 0', 'Whole interface scale: Ctrl + plus / minus, reset: Ctrl + 0')}</span>
+    </div>
   );
 }
 
@@ -202,9 +223,9 @@ function LibrarySection({ st, save }: { st: S | null; save: (p: any) => Promise<
       {data?.libraries.map((l) => (
         <div key={l.id} className="row" style={{ padding: 12, borderRadius: 12, background: 'var(--bg2)' }}>
           <Icon name="folder" size={18} />
-          <span className="mono" style={{ fontSize: 12, flex: '1 1 200px', wordBreak: 'break-all' }}>{l.path}</span>
-          <span className="pill" style={{ cursor: 'default', height: 26, fontSize: 11 }}>{tr(...(kindLabel[l.kind] || kindLabel.auto))}</span>
-          <span style={{ fontSize: 12, color: l.online ? 'var(--mut2)' : 'var(--err-fg)' }}>
+          <span className="mono" style={{ fontSize: 'calc(12px * var(--fs))', flex: '1 1 200px', wordBreak: 'break-all' }}>{l.path}</span>
+          <span className="pill" style={{ cursor: 'default', height: 26, fontSize: 'calc(11px * var(--fs))' }}>{tr(...(kindLabel[l.kind] || kindLabel.auto))}</span>
+          <span style={{ fontSize: 'calc(12px * var(--fs))', color: l.online ? 'var(--mut2)' : 'var(--err-fg)' }}>
             {!l.online ? tr('Диск отключён — записи сохранены', 'Drive offline — entries kept') : s?.scanning && s.library === l.path ? `${tr('Сканирование', 'Scanning')} ${s.done}/${s.total}` : tr('Отслеживается', 'Watching')}
           </span>
           <button className="ri" style={{ width: 36, height: 36 }} aria-label={`${tr('Убрать папку', 'Remove folder')} ${l.path}`} onClick={() => del(l)}><Icon name="trash" size={16} /></button>
@@ -229,7 +250,7 @@ function LibrarySection({ st, save }: { st: S | null; save: (p: any) => Promise<
         <form className="fld" style={{ flex: '1 1 260px' }} onSubmit={(e) => { e.preventDefault(); if (key.trim()) saveKey(); }}>
           <label htmlFor="key">{tr('Ключ TMDB', 'TMDB key')} {st?.tmdbKeySet ? <span style={{ color: 'var(--ok-fg)' }}>· {tr('задан', 'set')} ••••{st.tmdbKeyTail}</span> : <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer">· {tr('получить бесплатно', 'get one free')}</a>}</label>
           <div style={{ display: 'flex', gap: 8 }}>
-            <input id="key" className="inp mono" style={{ flex: 1, fontSize: 12 }} value={key} onChange={(e) => setKey(e.target.value)} placeholder={st?.tmdbKeySet ? '••••••••••••' + (st.tmdbKeyTail || '') : 'API key v3 / токен v4'} autoComplete="off" />
+            <input id="key" className="inp mono" style={{ flex: 1, fontSize: 'calc(12px * var(--fs))' }} value={key} onChange={(e) => setKey(e.target.value)} placeholder={st?.tmdbKeySet ? '••••••••••••' + (st.tmdbKeyTail || '') : 'API key v3 / токен v4'} autoComplete="off" />
             <button className="btn btn-d sm" disabled={busy || !key.trim()}>{busy ? <span className="spin" /> : tr('Проверить', 'Verify')}</button>
           </div>
         </form>
@@ -279,7 +300,7 @@ function Playback({ st, save }: { st: S; save: (p: any) => Promise<S> }) {
         <label className="chk"><input type="checkbox" checked={st.useExternal === '1'} onChange={(e) => set('useExternal', e.target.checked ? '1' : '')} />{tr('Предлагать внешний плеер (VLC / mpv)', 'Offer external player (VLC / mpv)')}</label>
       </div>
       <label className="fld">{tr('Путь к внешнему плееру (если не найден сам)', 'External player path (if not detected)')}
-        <input className="inp mono" style={{ fontSize: 12 }} defaultValue={st.externalPlayer} placeholder="C:\Program Files\VideoLAN\VLC\vlc.exe" onBlur={(e) => e.target.value !== st.externalPlayer && set('externalPlayer', e.target.value)} />
+        <input className="inp mono" style={{ fontSize: 'calc(12px * var(--fs))' }} defaultValue={st.externalPlayer} placeholder="C:\Program Files\VideoLAN\VLC\vlc.exe" onBlur={(e) => e.target.value !== st.externalPlayer && set('externalPlayer', e.target.value)} />
       </label>
       <div className="sub">FFmpeg {st.hw?.version || '—'}</div>
     </Card>
@@ -314,7 +335,7 @@ function TorrentSection() {
   const dir = (k: 'downloadDir' | 'moviesDir' | 'showsDir', label: string) => (
     <label className="fld">{label}
       <div style={{ display: 'flex', gap: 6 }}>
-        <input className="inp mono" style={{ flex: 1, fontSize: 12 }} value={draft[k]} onChange={(e) => set(k, e.target.value)} />
+        <input className="inp mono" style={{ flex: 1, fontSize: 'calc(12px * var(--fs))' }} value={draft[k]} onChange={(e) => set(k, e.target.value)} />
         <button type="button" className="btn btn-l sm" style={{ padding: '0 12px' }} aria-label={tr('Выбрать папку', 'Choose folder')} onClick={() => setPicker(k)}><Icon name="folder" size={16} /></button>
       </div>
     </label>
@@ -331,7 +352,7 @@ function TorrentSection() {
       </div>
       <label className="chk"><input type="checkbox" checked={draft.autoImport} onChange={(e) => set('autoImport', e.target.checked)} />{tr('Переносить готовые загрузки в библиотеку (Название (Год) / Сезон N)', 'Move finished downloads into the library')}</label>
 
-      <h3 className="h2" style={{ fontSize: 14, marginTop: 4 }}>{tr('Сеть и VPN', 'Network & VPN')}</h3>
+      <h3 className="h2" style={{ fontSize: 'calc(14px * var(--fs))', marginTop: 4 }}>{tr('Сеть и VPN', 'Network & VPN')}</h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 12 }}>
         <label className="fld">{tr('Интерфейс для торрентов', 'Torrent interface')}
           <select className="sel" value={draft.bindIface} onChange={(e) => set('bindIface', e.target.value)}>
@@ -346,7 +367,7 @@ function TorrentSection() {
           </select>
         </label>
         <label className="fld">SOCKS5-{tr('прокси', 'proxy')}
-          <input className="inp mono" style={{ fontSize: 12 }} value={draft.proxy} onChange={(e) => set('proxy', e.target.value)} placeholder="socks5://user:pass@host:1080" />
+          <input className="inp mono" style={{ fontSize: 'calc(12px * var(--fs))' }} value={draft.proxy} onChange={(e) => set('proxy', e.target.value)} placeholder="socks5://user:pass@host:1080" />
         </label>
       </div>
       <label className="chk"><input type="checkbox" checked={draft.killSwitch} disabled={!draft.bindIface} onChange={(e) => set('killSwitch', e.target.checked)} />
@@ -358,10 +379,10 @@ function TorrentSection() {
         <label className="chk"><input type="checkbox" checked={draft.upnp} onChange={(e) => set('upnp', e.target.checked)} />UPnP</label>
       </div>
       <label className="fld">{tr('Дополнительные трекеры (добавляются ко всем раздачам, по одному в строке)', 'Extra trackers (added to every torrent, one per line)')}
-        <textarea className="inp mono" style={{ fontSize: 12, minHeight: 96, height: 'auto', padding: 10, resize: 'vertical' }} value={draft.trackers} onChange={(e) => set('trackers', e.target.value)} />
+        <textarea className="inp mono" style={{ fontSize: 'calc(12px * var(--fs))', minHeight: 96, height: 'auto', padding: 10, resize: 'vertical' }} value={draft.trackers} onChange={(e) => set('trackers', e.target.value)} />
       </label>
 
-      <h3 className="h2" style={{ fontSize: 14, marginTop: 4 }}>{tr('Скорость и раздача', 'Speed & seeding')}</h3>
+      <h3 className="h2" style={{ fontSize: 'calc(14px * var(--fs))', marginTop: 4 }}>{tr('Скорость и раздача', 'Speed & seeding')}</h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 12 }}>
         {num('downKBs', tr('Лимит загрузки', 'Download limit'), tr('КБ/с, 0 — нет', 'KB/s, 0 = none'))}
         {num('upKBs', tr('Лимит отдачи', 'Upload limit'), tr('КБ/с, 0 — нет', 'KB/s, 0 = none'))}
@@ -397,14 +418,14 @@ function Indexers({ data, reload }: { data: { indexers: Indexer[] | null; prefs:
   const upd = (i: number, p: Partial<Indexer>) => setList(list.map((x, j) => (j === i ? { ...x, ...p } : x)));
   return (
     <>
-      <h3 className="h2" style={{ fontSize: 14, marginTop: 4 }}>{tr('Источники поиска (Torznab)', 'Search sources (Torznab)')}</h3>
+      <h3 className="h2" style={{ fontSize: 'calc(14px * var(--fs))', marginTop: 4 }}>{tr('Источники поиска (Torznab)', 'Search sources (Torznab)')}</h3>
       <div className="sub">{tr('Jackett или Prowlarr, которые вы настроили сами. В приложении нет встроенных трекеров.', 'Jackett or Prowlarr you set up yourself. No trackers are bundled.')}</div>
       {list.map((x, i) => (
         <div key={i} className="row" style={{ padding: 10, borderRadius: 12, background: 'var(--bg2)' }}>
           <input type="checkbox" checked={x.on} onChange={(e) => upd(i, { on: e.target.checked })} aria-label={tr('Включён', 'Enabled')} style={{ width: 18, height: 18, accentColor: 'var(--acc)' }} />
           <input className="inp" style={{ flex: '0 1 140px' }} value={x.name} onChange={(e) => upd(i, { name: e.target.value })} placeholder={tr('Название', 'Name')} aria-label={tr('Название', 'Name')} />
-          <input className="inp mono" style={{ flex: '1 1 260px', fontSize: 12 }} value={x.url} onChange={(e) => upd(i, { url: e.target.value })} placeholder="http://127.0.0.1:9117/api/v2.0/indexers/all/results/torznab/" aria-label="URL" />
-          <input className="inp mono" style={{ flex: '0 1 160px', fontSize: 12 }} value={x.apiKey} onChange={(e) => upd(i, { apiKey: e.target.value })} placeholder="API key" aria-label="API key" />
+          <input className="inp mono" style={{ flex: '1 1 260px', fontSize: 'calc(12px * var(--fs))' }} value={x.url} onChange={(e) => upd(i, { url: e.target.value })} placeholder="http://127.0.0.1:9117/api/v2.0/indexers/all/results/torznab/" aria-label="URL" />
+          <input className="inp mono" style={{ flex: '0 1 160px', fontSize: 'calc(12px * var(--fs))' }} value={x.apiKey} onChange={(e) => upd(i, { apiKey: e.target.value })} placeholder="API key" aria-label="API key" />
           <button className="ri" style={{ width: 36, height: 36 }} aria-label={tr('Удалить', 'Remove')} onClick={() => setList(list.filter((_, j) => j !== i))}><Icon name="trash" size={16} /></button>
         </div>
       ))}
@@ -489,9 +510,9 @@ function Diagnostics() {
         {(data || []).map((c) => {
           const [bg, fg, mark] = c.ok ? ['var(--ok-bg)', 'var(--ok-fg)', '✓'] : c.warn ? ['var(--warn-bg)', 'var(--warn-fg)', '!'] : ['var(--err-bg)', 'var(--err-fg)', '×'];
           return (
-            <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 12, borderRadius: 12, background: 'var(--bg2)', fontSize: 13 }}>
-              <span aria-hidden="true" style={{ width: 24, height: 24, borderRadius: '50%', background: bg, color: fg, display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: 12, flex: 'none' }}>{mark}</span>
-              <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}><span style={{ fontWeight: 600 }}>{c.name}</span><span style={{ fontSize: 11, color: 'var(--mut)', wordBreak: 'break-word' }}>{c.detail}</span></span>
+            <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 12, borderRadius: 12, background: 'var(--bg2)', fontSize: 'calc(13px * var(--fs))' }}>
+              <span aria-hidden="true" style={{ width: 24, height: 24, borderRadius: '50%', background: bg, color: fg, display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: 'calc(12px * var(--fs))', flex: 'none' }}>{mark}</span>
+              <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}><span style={{ fontWeight: 600 }}>{c.name}</span><span style={{ fontSize: 'calc(11px * var(--fs))', color: 'var(--mut)', wordBreak: 'break-word' }}>{c.detail}</span></span>
             </div>
           );
         })}
@@ -500,7 +521,7 @@ function Diagnostics() {
       {logs && (
         <Modal title={tr('Журнал', 'Log')} onClose={() => setLogs(null)} wide>
           <div className="sub mono">{logs.path}</div>
-          <pre className="mono" style={{ margin: 0, fontSize: 11, maxHeight: 420, overflow: 'auto', background: 'var(--bg2)', padding: 12, borderRadius: 10, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{logs.lines.slice(-300).join('\n') || tr('Пусто', 'Empty')}</pre>
+          <pre className="mono" style={{ margin: 0, fontSize: 'calc(11px * var(--fs))', maxHeight: 420, overflow: 'auto', background: 'var(--bg2)', padding: 12, borderRadius: 10, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{logs.lines.slice(-300).join('\n') || tr('Пусто', 'Empty')}</pre>
         </Modal>
       )}
     </Card>
