@@ -18,6 +18,14 @@ export function TopBar({ types = true, catalog = false }: { types?: boolean; cat
   const bgOn = prefs.bg !== 'off';
   const playing = cast[0];
   const tv = playing ? playing.deviceName : devices.find((d) => d.online)?.name;
+  // The bar sticks to the top; once the page scrolls only the search and the type switch stay.
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
+    const on = () => setStuck(window.scrollY > 24);
+    on();
+    window.addEventListener('scroll', on, { passive: true });
+    return () => window.removeEventListener('scroll', on);
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -45,8 +53,8 @@ export function TopBar({ types = true, catalog = false }: { types?: boolean; cat
   };
 
   return (
-    <header style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingTop: 16 }}>
-      <div style={{ flex: '1 1 120px', display: 'flex', gap: 4 }}>
+    <header className={'topbar' + (stuck ? ' stuck' : '')} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingTop: 16 }}>
+      <div className="tb-side" style={{ flex: '1 1 120px', display: 'flex', gap: 4 }}>
         <button className="ri" aria-label={t('back')} onClick={() => nav(-1)}><Icon name="left" /></button>
         <button className="ri" aria-label={t('forward')} onClick={() => nav(1)}><Icon name="right" /></button>
       </div>
@@ -78,7 +86,7 @@ export function TopBar({ types = true, catalog = false }: { types?: boolean; cat
           </div>
         )}
       </div>
-      <div style={{ flex: '1 1 120px', display: 'flex', justifyContent: 'flex-end', gap: 6, flexWrap: 'wrap' }}>
+      <div className="tb-side" style={{ flex: '1 1 120px', display: 'flex', justifyContent: 'flex-end', gap: 6, flexWrap: 'wrap' }}>
         <button className="pill" onClick={() => setPrefs({ bg: bgOn ? 'off' : 'live' })} aria-pressed={bgOn} style={{ height: 40 }}>
           <Icon name="sparkle" size={16} style={{ color: 'var(--acct)' }} />{bgOn ? t('liveBg') : t('bgOff')}
         </button>
