@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS shows (
   rating    REAL NOT NULL DEFAULT 0,
   cast_json TEXT NOT NULL DEFAULT '[]',
   matched   INTEGER NOT NULL DEFAULT 0,
+  folder_title TEXT NOT NULL DEFAULT '', -- name parsed from the files; title becomes the TMDB one
+  folder_year  INTEGER NOT NULL DEFAULT 0,
   UNIQUE(title, year)
 );
 

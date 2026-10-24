@@ -31,6 +31,9 @@ func Open(path string) (*Store, error) {
 		return nil, fmt.Errorf("schema: %w", err)
 	}
 	s := &Store{DB: db}
+	if err := s.migrate(); err != nil {
+		return nil, fmt.Errorf("migrate: %w", err)
+	}
 	if err := s.ensureDefaultProfile(); err != nil {
 		return nil, err
 	}
