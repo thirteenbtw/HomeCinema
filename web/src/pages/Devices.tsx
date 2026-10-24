@@ -118,7 +118,8 @@ function Remote({ s }: { s: CastStatus }) {
   const pos = seekPos ?? s.position;
   const pct = s.duration ? Math.min(1, pos / s.duration) : 0;
   const file = item?.files?.[0];
-  const title = item ? (item.kind === 'episode' ? item.showTitle || item.title : item.title) : s.title;
+  // A torrent has only a file name: show it as words, without the extension.
+  const title = item ? (item.kind === 'episode' ? item.showTitle || item.title : item.title) : s.torrent ? (s.title || '').replace(/\.[a-z0-9]{2,4}$/i, '').replace(/[._]+/g, ' ') : s.title;
   const continueOnPC = async () => {
     await act('stop');
     if (s.torrent) nav(`/play/torrent/${s.torrent}?file=${s.file}`);
@@ -134,7 +135,7 @@ function Remote({ s }: { s: CastStatus }) {
       <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
         <Art src={item?.poster} title={title || '?'} style={{ width: 72, height: 108, borderRadius: 8, flex: 'none' }} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-          <span className="disp" style={{ fontSize: 26, fontWeight: 600, lineHeight: 1 }}>{title}</span>
+          <span className="disp" title={title} style={{ fontSize: (title || '').length > 30 ? 20 : 26, fontWeight: 600, lineHeight: 1.05, overflowWrap: 'anywhere', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{title}</span>
           {item?.kind === 'episode' && <span style={{ fontSize: 12, color: '#D4D7DC' }}>С{item.season}·Э{item.episode} {item.epTitle}</span>}
           <span style={{ fontSize: 12, color: '#A9ADB4' }}>{s.audioLabel || '—'} · {tr('субтитры', 'subtitles')} {s.subLabel || tr('выкл.', 'off')}</span>
         </div>
