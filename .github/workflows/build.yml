@@ -69,7 +69,7 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           [[ "$GITHUB_REF" == refs/tags/* ]] || VERSION="0.1.0-${GITHUB_SHA::7}"
           mkdir -p ../desktop/src-tauri/binaries
-          go build -trimpath -ldflags "-s -w -X main.version=$VERSION" -o ../desktop/src-tauri/binaries/homecinema-server-$TRIPLE.exe ./cmd/homecinema
+          go build -trimpath -ldflags "-s -w -X main.version=$VERSION" -o ../desktop/src-tauri/binaries/rivo-server-$TRIPLE.exe ./cmd/homecinema
 
       - name: Fetch FFmpeg (LGPL build)
         shell: bash

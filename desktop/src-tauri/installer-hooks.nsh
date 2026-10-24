@@ -8,6 +8,12 @@
   ReadRegStr $R0 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\HomeCinema" "UninstallString"
   StrCmp $R0 "" hc_done
   hc_found:
+  ; carry "start with Windows" over: the autostart entry is named after the app
+  ReadRegStr $R2 HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "HomeCinema"
+  StrCmp $R2 "" hc_uninstall
+  DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "HomeCinema"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "Rivo" '"$INSTDIR\Rivo.exe" --minimized'
+  hc_uninstall:
   ; the value is quoted; _?= keeps the uninstaller in place so ExecWait really waits
   StrCpy $R1 $R0 1
   StrCmp $R1 '"' 0 +2
@@ -24,7 +30,7 @@
 ; phones on the LAN can reach it. Public networks stay closed.
 !macro NSIS_HOOK_POSTINSTALL
   nsExec::Exec 'netsh advfirewall firewall delete rule name="Rivo"'
-  nsExec::Exec 'netsh advfirewall firewall add rule name="Rivo" dir=in action=allow program="$INSTDIR\homecinema-server.exe" enable=yes profile=private'
+  nsExec::Exec 'netsh advfirewall firewall add rule name="Rivo" dir=in action=allow program="$INSTDIR\rivo-server.exe" enable=yes profile=private'
 !macroend
 
 !macro NSIS_HOOK_PREUNINSTALL

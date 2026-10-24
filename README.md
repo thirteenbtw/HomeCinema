@@ -30,7 +30,7 @@
 
 Готовый установщик собирает GitHub Actions (`.github/workflows/build.yml`) на `windows-latest`: артефакт `Rivo-windows-installer` у каждого запуска, а при пуше тега `v*` — релиз с `.exe`. Установщик кладёт рядом сервер и LGPL-сборку FFmpeg (BtbN) и добавляет правило брандмауэра Windows только для частных сетей.
 
-Данные лежат в `%APPDATA%\HomeCinema` (база, кэш картинок и транскода, логи). Папка и внутренние имена (`homecinema-server`, модуль Go) остались от прежнего названия, чтобы обновление не потеряло библиотеку; установщик Rivo сам удаляет старую установку HomeCinema.
+Данные лежат в `%APPDATA%\HomeCinema` (база, кэш картинок и транскода, логи). Папка данных и модуль Go остались от прежнего названия, чтобы обновление не потеряло библиотеку; установщик Rivo сам удаляет старую установку HomeCinema.
 
 ## Фирменный стиль
 
@@ -56,7 +56,7 @@ cd server && go test ./... && go build ./cmd/homecinema
 
 ```bash
 # положите бинарники с суффиксом целевой платформы:
-#   desktop/src-tauri/binaries/homecinema-server-x86_64-pc-windows-msvc.exe
+#   desktop/src-tauri/binaries/rivo-server-x86_64-pc-windows-msvc.exe
 #   desktop/src-tauri/binaries/ffmpeg-x86_64-pc-windows-msvc.exe
 #   desktop/src-tauri/binaries/ffprobe-x86_64-pc-windows-msvc.exe
 cd desktop && npm ci && npx tauri build

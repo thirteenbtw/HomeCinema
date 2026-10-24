@@ -66,7 +66,7 @@ fn splash_error(app: &AppHandle, msg: &str) {
 fn start_server(app: &AppHandle) -> Result<(), String> {
     let cmd = app
         .shell()
-        .sidecar("homecinema-server")
+        .sidecar("rivo-server")
         .map_err(|e| e.to_string())?
         .args(["-exit-on-stdin-close"]);
     let (mut rx, child) = cmd.spawn().map_err(|e| e.to_string())?;
