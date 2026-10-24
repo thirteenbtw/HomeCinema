@@ -222,10 +222,12 @@ function Detail({ kind, item, show, nextUp, similar = [], compat = [], reload }:
             <section className="card solid">
               <h2 className="h2" style={{ fontSize: 'calc(14px * var(--fs))' }}>{t('whereplays')}</h2>
               {compat.map((d) => (
-                <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 'calc(13px * var(--fs))' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: d.status === 'direct' ? '#2F9E62' : '#E08A00', flex: 'none' }} />
-                  <span style={{ flex: 1, fontWeight: 600 }}>{d.name}</span>
-                  <span style={{ color: 'var(--mut2)', textAlign: 'right' }}>{d.mode}</span>
+                <div key={d.name} style={{ display: 'flex', alignItems: 'baseline', gap: 10, fontSize: 'calc(13px * var(--fs))' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: d.status === 'direct' ? '#2F9E62' : '#E08A00', flex: 'none', alignSelf: 'flex-start', marginTop: '0.45em' }} />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, overflowWrap: 'anywhere' }}>{d.name}</div>
+                    <div style={{ color: 'var(--mut2)' }}>{d.mode}</div>
+                  </div>
                 </div>
               ))}
             </section>
