@@ -120,8 +120,25 @@ func (s *Server) patchTorrent(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (s *Server) deleteTorrent(w http.ResponseWriter, r *http.Request) error {
-	if err := s.Torrents.Remove(r.PathValue("hash"), r.URL.Query().Get("data") == "1"); err != nil {
+	hash := r.PathValue("hash")
+	data, lib := r.URL.Query().Get("data") == "1", r.URL.Query().Get("library") == "1"
+	if _, err := s.Torrents.Get(hash); err != nil {
 		return notFound(err.Error())
+	}
+	if data {
+		// ffmpeg playing one of these files keeps it locked on Windows.
+		open := map[string]bool{}
+		for _, p := range s.Torrents.DataPaths(hash, lib) {
+			open[p] = true
+		}
+		s.Trans.StopWhere(func(in string) bool { return open[in] || strings.Contains(in, "/torrents/"+strings.ToLower(hash)+"/") })
+	}
+	err := s.Torrents.Remove(hash, data, lib)
+	if data && lib {
+		s.Scanner.RequestScan(0) // drop the deleted copies from the library
+	}
+	if err != nil {
+		return err
 	}
 	return writeJSON(w, map[string]bool{"ok": true})
 }

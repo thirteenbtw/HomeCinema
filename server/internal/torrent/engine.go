@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"log/slog"
 	"net"
@@ -29,6 +30,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/thirteenbtw/homecinema/server/internal/events"
+	"github.com/thirteenbtw/homecinema/server/internal/library"
 	"github.com/thirteenbtw/homecinema/server/internal/parse"
 	"github.com/thirteenbtw/homecinema/server/internal/store"
 )
@@ -528,7 +530,10 @@ func (e *Engine) SetFiles(hash string, off []int) error {
 
 // Remove drops a torrent; deleteData also removes the downloaded files (not
 // the copies already imported into the library).
-func (e *Engine) Remove(hash string, deleteData bool) error {
+// Remove drops a torrent. deleteData also deletes its downloaded files, and
+// withLibrary the copies placed in the library (hard links of the same data, so
+// without them deleting the download frees no space).
+func (e *Engine) Remove(hash string, deleteData, withLibrary bool) error {
 	e.mu.Lock()
 	m, err := e.get(hash)
 	if err != nil {
@@ -536,25 +541,124 @@ func (e *Engine) Remove(hash string, deleteData bool) error {
 		return err
 	}
 	delete(e.items, m.row.InfoHash)
-	var paths []string
-	if m.t.Info() != nil {
-		for _, f := range m.t.Files() {
-			paths = append(paths, filepath.Join(e.settings.DownloadDir, filepath.FromSlash(f.Path())))
-		}
+	var files, dirs []string
+	if deleteData {
+		files, dirs = e.dataPathsLocked(m, withLibrary)
 	}
-	name := m.t.Name()
-	multi := m.t.Info() != nil && len(m.t.Info().Files) > 0
 	m.t.Drop()
 	e.mu.Unlock()
-	if deleteData {
-		for _, p := range paths {
-			_ = os.Remove(p)
+	failed := removeAll(files, dirs)
+	if err := e.Store.DeleteTorrent(m.row.InfoHash); err != nil {
+		return err
+	}
+	if len(failed) > 0 {
+		return fmt.Errorf("раздача убрана, но не удалось удалить с диска (файл открыт в другой программе?): %s", strings.Join(failed, ", "))
+	}
+	return nil
+}
+
+// DataPaths lists the files Remove deletes, so the caller can stop whatever
+// still has them open first.
+func (e *Engine) DataPaths(hash string, withLibrary bool) []string {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	m, err := e.get(hash)
+	if err != nil {
+		return nil
+	}
+	files, _ := e.dataPathsLocked(m, withLibrary)
+	return files
+}
+
+func (e *Engine) dataPathsLocked(m *managed, withLibrary bool) (files, dirs []string) {
+	if m.t.Info() == nil {
+		return nil, nil
+	}
+	st := e.settings
+	movies, shows := st.MoviesDir, st.ShowsDir
+	if movies == "" {
+		movies = filepath.Join(st.DownloadDir, "Фильмы")
+	}
+	if shows == "" {
+		shows = filepath.Join(st.DownloadDir, "Сериалы")
+	}
+	for _, f := range m.t.Files() {
+		src := filepath.Join(st.DownloadDir, filepath.FromSlash(f.Path()))
+		files = append(files, src, src+".hc-link")
+		if !withLibrary || !parse.IsVideo(f.Path()) {
+			continue
 		}
-		if multi && name != "" {
-			_ = os.RemoveAll(filepath.Join(e.settings.DownloadDir, name))
+		// The library copy of this file, if it is one: the same inode (hard
+		// link) or, after a copy across drives, the same size.
+		dst := library.Target(f.Path(), movies, shows)
+		ds, err := os.Stat(dst)
+		if err != nil {
+			continue
+		}
+		if ss, err := os.Stat(src); err == nil && !os.SameFile(ss, ds) && ss.Size() != ds.Size() || err != nil && ds.Size() != f.Length() {
+			continue
+		}
+		files = append(files, dst)
+		base := strings.TrimSuffix(dst, filepath.Ext(dst))
+		if subs, _ := filepath.Glob(globEscape(base) + ".*"); subs != nil {
+			for _, sub := range subs {
+				if parse.SubExts[strings.ToLower(filepath.Ext(sub))] {
+					files = append(files, sub)
+				}
+			}
+		}
+		// Title folder, then for episodes the show folder, once empty.
+		for d := filepath.Dir(dst); d != movies && d != shows && d != filepath.Dir(d); d = filepath.Dir(d) {
+			dirs = append(dirs, d)
 		}
 	}
-	return e.Store.DeleteTorrent(m.row.InfoHash)
+	if info := m.t.Info(); len(info.Files) > 0 && m.t.Name() != "" {
+		dirs = append(dirs, filepath.Join(st.DownloadDir, m.t.Name()))
+	}
+	return files, dirs
+}
+
+// removeAll deletes files, retrying for a few seconds: on Windows a file stays
+// locked until the torrent storage, a player or ffmpeg lets go of it. Folders
+// are removed only once empty, deepest first. It returns what is left.
+func removeAll(files, dirs []string) []string {
+	left := files
+	for try := 0; try < 20 && len(left) > 0; try++ {
+		if try > 0 {
+			time.Sleep(250 * time.Millisecond)
+		}
+		var next []string
+		for _, p := range left {
+			if err := os.Remove(p); err != nil && !errors.Is(err, fs.ErrNotExist) {
+				next = append(next, p)
+			}
+		}
+		left = next
+	}
+	sort.Slice(dirs, func(i, j int) bool { return len(dirs[i]) > len(dirs[j]) })
+	for _, d := range dirs {
+		removeEmptyDirs(d)
+	}
+	return left
+}
+
+// removeEmptyDirs removes dir and the empty folders inside it; anything that
+// still holds files stays.
+func removeEmptyDirs(dir string) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	for _, en := range entries {
+		if en.IsDir() {
+			removeEmptyDirs(filepath.Join(dir, en.Name()))
+		}
+	}
+	_ = os.Remove(dir) // fails while not empty
+}
+
+func globEscape(s string) string {
+	return strings.NewReplacer("[", "[[]", "*", "[*]", "?", "[?]").Replace(s)
 }
 
 // ---------- loop: speeds, queue, schedule, seeding, import, kill switch ----------

@@ -181,12 +181,12 @@ export default function Torrents() {
                               <td className="td" style={{ fontSize: 'calc(12px * var(--fs))', color: 'var(--mut2)', whiteSpace: 'nowrap' }}>{r.status === 'seeding' ? `${tr('рейтинг', 'ratio')} ${r.ratio.toFixed(2)}` : r.status === 'done' ? '—' : eta(r.eta)}</td>
                               <td className="td" style={{ width: 1 }} onClick={(e) => e.stopPropagation()}>
                                 <div style={{ display: 'flex', gap: 0, justifyContent: 'flex-end' }}>
-                                <button className="ri" style={{ width: 32, height: 32 }} aria-label={r.status === 'paused' ? tr('Продолжить', 'Resume') : tr('Пауза', 'Pause')} onClick={() => patch(r.hash, { paused: r.status !== 'paused' })}>
+                                <button className="ri" style={{ width: 32, height: 32 }} aria-label={r.status === 'paused' ? tr('Продолжить', 'Resume') : tr('Пауза', 'Pause')} title={r.status === 'paused' ? tr('Продолжить загрузку и раздачу', 'Resume downloading and seeding') : tr('Пауза: остановить загрузку и раздачу', 'Pause downloading and seeding')} onClick={() => patch(r.hash, { paused: r.status !== 'paused' })}>
                                   {r.status === 'paused' ? <PlayGlyph size={14} /> : <Icon name="pause2" size={17} />}
                                 </button>
-                                {r.status !== 'done' && r.status !== 'seeding' && <button className="ri" style={{ width: 32, height: 32 }} aria-label={tr('Поднять приоритет', 'Raise priority')} onClick={() => patch(r.hash, { priority: r.priority + 1 })}><Icon name="up" size={17} /></button>}
-                                <button className="ri" style={{ width: 32, height: 32 }} aria-label={tr('Файлы', 'Files')} aria-expanded={open === r.hash} onClick={() => setOpen(open === r.hash ? null : r.hash)}><Icon name="folder" size={17} /></button>
-                                <button className="ri" style={{ width: 32, height: 32 }} aria-label={tr('Удалить', 'Remove')} onClick={() => setConfirmDel(r)}><Icon name="trash" size={17} /></button>
+                                {r.status !== 'done' && r.status !== 'seeding' && <button className="ri" style={{ width: 32, height: 32 }} aria-label={tr('Поднять приоритет', 'Raise priority')} title={tr('Поднять в очереди: качать эту раздачу раньше остальных', 'Move up the queue: download this one first')} onClick={() => patch(r.hash, { priority: r.priority + 1 })}><Icon name="up" size={17} /></button>}
+                                <button className="ri" style={{ width: 32, height: 32 }} aria-label={tr('Файлы', 'Files')} title={tr('Файлы раздачи: выбрать, какие качать, и запустить просмотр', 'Files: choose what to download and play')} aria-expanded={open === r.hash} onClick={() => setOpen(open === r.hash ? null : r.hash)}><Icon name="folder" size={17} /></button>
+                                <button className="ri" style={{ width: 32, height: 32 }} aria-label={tr('Удалить', 'Remove')} title={tr('Удалить раздачу (и, по желанию, файлы с диска)', 'Remove the torrent (and optionally its files)')} onClick={() => setConfirmDel(r)}><Icon name="trash" size={17} /></button>
                                 </div>
                               </td>
                             </tr>
@@ -228,18 +228,26 @@ export default function Torrents() {
 function Dot() { return <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />; }
 
 function DeleteDialog({ t, onClose, onDone }: { t: TorrentInfo; onClose: () => void; onDone: () => void }) {
-  const [data, setData] = useState(t.status !== 'done' && t.status !== 'seeding');
+  const finished = t.status === 'done' || t.status === 'seeding' || (t.imported?.length ?? 0) > 0;
+  const [data, setData] = useState(true);
+  const [lib, setLib] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const go = async () => {
-    try { await api.del(`/api/torrents/${t.hash}${data ? '?data=1' : ''}`); onDone(); } catch (e: any) { setErr(e.message); }
+    setBusy(true);
+    try { await api.del(`/api/torrents/${t.hash}${data ? '?data=1' + (lib ? '&library=1' : '') : ''}`); onDone(); } catch (e: any) { setErr(e.message); setBusy(false); }
   };
   return (
     <Modal title={tr('Удалить раздачу?', 'Remove torrent?')} onClose={onClose}>
       <div style={{ fontWeight: 600, wordBreak: 'break-word' }}>{t.name}</div>
-      <label className="chk"><input type="checkbox" checked={data} onChange={(e) => setData(e.target.checked)} />{tr('Удалить и недокачанные файлы с диска', 'Also delete downloaded data')}</label>
-      {t.imported && t.imported.length > 0 && <div className="sub">{tr('Файлы, уже перенесённые в библиотеку, останутся.', 'Files already moved to the library stay.')}</div>}
+      <label className="chk"><input type="checkbox" checked={data} onChange={(e) => setData(e.target.checked)} />{tr('Удалить скачанные файлы с диска', 'Delete downloaded files from disk')}</label>
+      {finished && (
+        <label className="chk" style={{ opacity: data ? 1 : 0.5 }}><input type="checkbox" checked={data && lib} disabled={!data} onChange={(e) => setLib(e.target.checked)} />{tr('И копию в библиотеке (папки «Фильмы» / «Сериалы»)', 'And the library copy (Movies / Shows folders)')}</label>
+      )}
+      {finished && data && !lib && <div className="sub">{tr('Готовый фильм уже лежит в библиотеке. Без второй галочки он останется там, а место на диске не освободится.', 'The finished file is already in the library. Without the second box it stays there and no space is freed.')}</div>}
+      {!data && <div className="sub">{tr('Раздача уйдёт из списка, файлы останутся на диске.', 'The torrent leaves the list, its files stay on disk.')}</div>}
       {err && <div className="err">{err}</div>}
-      <div className="row"><button className="btn btn-r sm" onClick={go}>{tr('Удалить', 'Remove')}</button><button className="btn btn-l sm" onClick={onClose}>{tr('Отмена', 'Cancel')}</button></div>
+      <div className="row"><button className="btn btn-r sm" onClick={go} disabled={busy}>{busy ? <span className="spin" /> : null}{tr('Удалить', 'Remove')}</button><button className="btn btn-l sm" onClick={onClose}>{tr('Отмена', 'Cancel')}</button></div>
     </Modal>
   );
 }

@@ -448,6 +448,25 @@ func (m *Manager) StopFile(fileID int64, except string) {
 	}
 }
 
+// StopWhere stops the sessions whose input matches, before that file is deleted.
+func (m *Manager) StopWhere(match func(input string) bool) {
+	m.mu.Lock()
+	var done []chan struct{}
+	for id, s := range m.sessions {
+		if match(s.Opts.Input) {
+			done = append(done, s.done)
+			m.stopLocked(id)
+		}
+	}
+	m.mu.Unlock()
+	for _, d := range done {
+		select {
+		case <-d:
+		case <-time.After(5 * time.Second):
+		}
+	}
+}
+
 type SessionInfo struct {
 	ID      string  `json:"id"`
 	FileID  int64   `json:"fileId"`
