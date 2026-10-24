@@ -115,7 +115,7 @@ func testMagnet(t *testing.T, downKBs int) {
 			got, _ := e.Get(hash)
 			var st strings.Builder
 			e.mu.Lock()
-			e.items[hash].t.WriteStatus(&st)
+			e.cl.WriteStatus(&st)
 			e.mu.Unlock()
 			t.Fatalf("download did not finish: %+v\n%s", got, st.String())
 		}
