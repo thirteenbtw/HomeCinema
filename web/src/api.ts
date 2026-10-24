@@ -67,7 +67,7 @@ export type CatalogTitle = CatalogItem & {
   seasons?: { number: number; name: string; episodes: number; year: number }[];
   cast: CastMember[]; related: CatalogItem[];
 };
-export type Indexer = { name: string; url: string; apiKey: string; on: boolean };
+export type Indexer = { name: string; url: string; apiKey: string; on: boolean; kind?: '' | 'jacred' };
 export type SearchPrefs = { quality: string; language: string; maxSizeGB: number; minSeeds: number };
 export type Caps = { video: string[]; audio: string[]; container: string[]; maxHeight: number; hdr: boolean };
 export type Device = { id: string; name: string; model: string; proto: string; addr: string; port: number; manual: boolean; online: boolean; busy: boolean; caps: Caps };

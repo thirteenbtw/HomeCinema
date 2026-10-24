@@ -14,8 +14,8 @@ const sections = [
   ['torrents', 'Торренты и VPN', 'Torrents & VPN'], ['access', 'Доступ и язык', 'Access & language'], ['prof', 'Профили и копии', 'Profiles & backup'], ['diag', 'Диагностика', 'Diagnostics'],
 ] as const;
 
-// TmdbAccess picks how the server reaches TMDB: through CUB (the mirror
-// Lampa uses, falling back to TMDB itself), directly, or via a custom mirror.
+// TmdbAccess picks how the server reaches TMDB: through the public mirrors
+// Lampa users rely on (and TMDB itself), directly, or via a custom mirror.
 function TmdbAccess({ st, save }: { st: S; save: (p: Partial<Record<keyof S, string>>) => Promise<S> }) {
   const [sel, setSel] = useState(st.tmdbVia || 'cub');
   const [apiUrl, setApiUrl] = useState(st.tmdbApi || '');
@@ -38,7 +38,7 @@ function TmdbAccess({ st, save }: { st: S; save: (p: Partial<Record<keyof S, str
       <div className="row">
         <label className="fld" style={{ flex: '0 1 340px' }}>{tr('Подключение к TMDB', 'Connecting to TMDB')}
           <select className="sel" value={sel} onChange={(e) => pick(e.target.value)} disabled={busy}>
-            <option value="cub">{tr('Через CUB, как в Lampa (работает без VPN)', 'Via CUB, as in Lampa (no VPN needed)')}</option>
+            <option value="cub">{tr('Через зеркала Lampa (работает без VPN)', 'Via Lampa mirrors (no VPN needed)')}</option>
             <option value="direct">{tr('Напрямую', 'Direct')}</option>
             <option value="custom">{tr('Своё зеркало…', 'Custom mirror…')}</option>
           </select>
@@ -442,7 +442,8 @@ function Indexers({ data, reload }: { data: { indexers: Indexer[] | null; prefs:
         </div>
       )}
       <div className="row">
-        <button className="btn btn-l sm" onClick={() => setList([...list, { name: 'Jackett', url: '', apiKey: '', on: true }])}><Icon name="plus" size={16} />{tr('Добавить источник', 'Add source')}</button>
+        <button className="btn btn-l sm" onClick={() => setList([...list, { name: 'Jackett', url: '', apiKey: '', on: true }])}><Icon name="plus" size={16} />{tr('Добавить Torznab', 'Add Torznab')}</button>
+        {!list.some((x) => x.kind === 'jacred') && <button className="btn btn-l sm" onClick={() => setList([...list, { name: 'JacRed', url: 'https://jac.red', apiKey: '', on: true, kind: 'jacred' }])}><Icon name="plus" size={16} />{tr('Добавить JacRed', 'Add JacRed')}</button>}
         <button className="btn btn-d sm" onClick={save}>{tr('Сохранить источники', 'Save sources')}</button>
       </div>
     </>

@@ -11,7 +11,7 @@ import (
 )
 
 // Catalog: browse all of TMDB (not just the library) and fetch a title from
-// the user's Torznab indexers, either to download or to watch while it loads.
+// the search sources (JacRed or the user's Torznab), either to download or to watch while it loads.
 
 func catalogErr(err error) error {
 	if errors.Is(err, tmdb.ErrNoKey) {
@@ -102,7 +102,7 @@ func (s *Server) catalogTorrents(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	if len(s.Torrents.Indexers()) == 0 {
-		return badRequest("добавьте свои источники Torznab (Jackett / Prowlarr) в настройках")
+		return badRequest("включите источник поиска (JacRed или свой Torznab) в настройках")
 	}
 	kind := catalogKind(r, "kind")
 	t, err := s.TMDB.Title(r.Context(), kind, id)

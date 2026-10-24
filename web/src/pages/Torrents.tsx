@@ -29,7 +29,7 @@ function eta(sec: number) {
 }
 
 // Torrents (FR-T1..T12): add by magnet/.torrent, watch while downloading,
-// search the user's own Torznab indexers.
+// search the indexers from settings (JacRed or the user's own Torznab).
 export default function Torrents() {
   const { torrents: ov, openCast, toast } = useApp();
   const nav = useNavigate();

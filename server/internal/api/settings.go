@@ -63,6 +63,9 @@ func (s *Server) putSettings(w http.ResponseWriter, r *http.Request) error {
 		}
 		if v != "" {
 			if err := s.TMDB.Check(r.Context()); err != nil {
+				if strings.Contains(err.Error(), "нет связи") {
+					return badRequest("ключ сохранён, но проверить его не удалось: %v", err)
+				}
 				return badRequest("ключ TMDB не подошёл: %v", err)
 			}
 			s.Store.ResetUnmatched()
