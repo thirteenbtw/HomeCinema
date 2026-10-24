@@ -4,8 +4,11 @@ import { api, ApiError, qs, type CatalogItem, type CatalogPage } from '../api';
 import { useAsync } from '../state';
 import { t, tr } from '../i18n';
 import { Art } from '../components/Art';
-import { Icon } from '../components/Icon';
 import { Section } from '../components/Shell';
+import { TopBar } from '../components/TopBar';
+import { Featured, Badge } from '../components/Featured';
+import { ContinueSection, useHomeData } from '../components/LibraryParts';
+import { PlayGlyph } from '../components/Icon';
 
 type Kind = 'movie' | 'tv';
 type Genre = { id: number; name: string };
@@ -23,8 +26,8 @@ const rows: Record<Kind, [string, string, string][]> = {
 
 const sorts: [string, string, string][] = [['', 'Популярные', 'Popular'], ['rating', 'По рейтингу', 'Top rated'], ['date', 'Новинки', 'Newest']];
 
-// Catalog: all of TMDB, not only the local library. A title opens a page
-// where it can be streamed or downloaded from the user's own indexers.
+// Home: the catalog of all of TMDB, not only the local library. A title opens
+// a page where it can be streamed or downloaded from the search sources.
 export default function Catalog() {
   const [params, setParams] = useSearchParams();
   const kind: Kind = params.get('kind') === 'tv' ? 'tv' : 'movie';
@@ -32,8 +35,7 @@ export default function Catalog() {
   const genre = Number(params.get('genre') || 0);
   const sort = params.get('sort') || '';
   const q = params.get('q') || '';
-  const [text, setText] = useState(q);
-  useEffect(() => setText(q), [q]);
+  const home = useHomeData();
   const genres = useAsync(() => api.get<Genre[]>(`/api/catalog/genres?kind=${kind}`), [kind]);
 
   const set = (patch: Record<string, string | number>) => {
@@ -48,21 +50,13 @@ export default function Catalog() {
       : list ? { path: `/api/catalog${qs({ kind, list })}`, title: row ? tr(row[1], row[2]) : t('catalog') }
         : null;
 
+  const browsing = !q && !genre && !list && !sort;
   return (
-    <main className="main pad">
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 16 }}>
-        <div>
-          <h1 className="h1">{t('catalog')}</h1>
-          <div className="sub">{tr('Все фильмы и сериалы TMDB — смотрите сразу во время загрузки или скачивайте в библиотеку', 'Every movie and show on TMDB — watch while it downloads or save it to the library')}</div>
-        </div>
-        <form role="search" className="glass" onSubmit={(e) => { e.preventDefault(); set({ q: text.trim(), list: '', genre: '', sort: '' }); }}
-          style={{ marginLeft: 'auto', flex: '0 1 360px', display: 'flex', alignItems: 'center', gap: 10, height: 44, padding: '0 16px', borderRadius: 999, border: '1px solid var(--line)', color: 'var(--mut)' }}>
-          <Icon name="search" size={18} />
-          <input value={text} onChange={(e) => setText(e.target.value)} placeholder={tr('Найти в каталоге', 'Search the catalog')} aria-label={tr('Поиск в каталоге', 'Search the catalog')}
-            style={{ flex: 1, minWidth: 0, border: 0, outline: 'none', background: 'transparent', font: "500 calc(14px * var(--fs)) 'Inter',sans-serif", color: 'var(--fg)' }} />
-          {q && <button type="button" className="ri" style={{ width: 28, height: 28 }} aria-label={tr('Очистить', 'Clear')} onClick={() => set({ q: '' })}><Icon name="close" size={14} /></button>}
-        </form>
-      </div>
+    <main className="main">
+      <h1 className="sr">{t('home')}</h1>
+      <TopBar catalog />
+      {browsing && <Spotlight kind={kind} />}
+      {browsing && <ContinueSection items={home.data?.continue || []} />}
 
       {!q && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -91,12 +85,25 @@ export default function Catalog() {
 
       {genres.error && <CatalogError msg={genres.error} />}
       {!genres.error && (grid ? <Grid key={grid.path} path={grid.path} title={grid.title} /> : rows[kind].map(([l, r, e]) => (
-        <Row key={kind + l} path={`/api/catalog${qs({ kind, list: l })}`} title={tr(r, e)} more={`/catalog${qs({ kind: kind === 'tv' ? 'tv' : '', list: l })}`} />
+        <Row key={kind + l} path={`/api/catalog${qs({ kind, list: l })}`} title={tr(r, e)} more={`/${qs({ kind: kind === 'tv' ? 'tv' : '', list: l })}`} />
       )))}
 
       <p style={{ margin: 0, fontSize: 'calc(12px * var(--fs))', color: 'var(--mut)' }}>{tr('Данные и постеры — TMDB. Раздачи ищутся в источниках из настроек: JacRed или ваш Jackett / Prowlarr.', 'Data and posters from TMDB. Releases are searched on the sources in settings: JacRed or your own Jackett / Prowlarr.')}</p>
     </main>
   );
+}
+
+// Spotlight: trending titles with artwork as the featured carousel.
+function Spotlight({ kind }: { kind: Kind }) {
+  const { data } = useAsync(() => api.get<CatalogPage>(`/api/catalog${qs({ kind, list: 'trending' })}`), [kind]);
+  const slides = (data?.items || []).filter((x) => x.backdrop).slice(0, 6).map((x) => ({
+    key: x.kind + x.id, name: x.title, backdrop: x.backdrop.replace('/w780/', '/w1280/'), overview: x.overview,
+    meta: [x.year || '', x.kind === 'tv' ? tr('Сериал', 'Show') : tr('Фильм', 'Movie')].filter(Boolean).join(' · '),
+    badges: <>{x.rating > 0 && <Badge>★ {x.rating.toFixed(1)}</Badge>}<Badge accent>{tr('В тренде', 'Trending')}</Badge></>,
+    actions: <Link className="btn btn-w" to={`/catalog/${x.kind}/${x.id}`}><PlayGlyph />{t('watch')}</Link>,
+  }));
+  if (!data) return <div style={{ height: 'clamp(340px, 42vw, 460px)', borderRadius: 20, background: 'var(--bg2)', flex: 'none' }} />;
+  return <Featured slides={slides} label={tr('В тренде', 'Trending')} />;
 }
 
 function CatalogError({ msg }: { msg: string }) {

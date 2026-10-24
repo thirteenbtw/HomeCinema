@@ -119,7 +119,7 @@ const accents = [['red', '#C8232D', 'Красный', 'Red'], ['amber', '#B35F00
 
 function Look() {
   const { prefs, setPrefs } = useApp();
-  const bgHint = { live: tr('Пятна света следуют за курсором', 'Light follows the cursor'), static: tr('Цветной фон без движения', 'Colored, no motion'), off: tr('Чистый фон темы', 'Plain theme background') }[prefs.bg];
+  const bgHint = { live: tr('Точки подсвечиваются вокруг курсора', 'Dots light up around the cursor'), static: tr('Сетка точек без движения', 'Dot grid, no motion'), off: tr('Чистый фон темы', 'Plain theme background') }[prefs.bg];
   return (
     <Card id="look" title={tr('Оформление', 'Appearance')} note={tr('Применяется сразу ко всему приложению и сохраняется в профиле', 'Applies instantly and is saved to your profile')}>
       <div role="radiogroup" aria-label={tr('Тема', 'Theme')} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 10 }}>

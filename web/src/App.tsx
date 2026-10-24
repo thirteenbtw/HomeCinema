@@ -1,7 +1,6 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AppProvider, useApp } from './state';
 import { Shell } from './components/Shell';
-import Home from './pages/Home';
 import Library from './pages/Library';
 import Search from './pages/Search';
 import { MoviePage, ShowPage } from './pages/Movie';
@@ -23,10 +22,10 @@ function Gate() {
   return (
     <Routes>
       <Route element={<Shell />}>
-        <Route index element={<Home />} />
+        <Route index element={<Catalog />} />
         <Route path="library/:kind" element={<Library />} />
         <Route path="search" element={<Search />} />
-        <Route path="catalog" element={<Catalog />} />
+        <Route path="catalog" element={<ToHome />} />
         <Route path="catalog/:kind/:id" element={<CatalogTitlePage />} />
         <Route path="movie/:id" element={<MoviePage />} />
         <Route path="show/:id" element={<ShowPage />} />
@@ -40,6 +39,12 @@ function Gate() {
       </Route>
     </Routes>
   );
+}
+
+// The catalog moved to Home; old /catalog links keep their filters.
+function ToHome() {
+  const { search } = useLocation();
+  return <Navigate to={'/' + search} replace />;
 }
 
 export default function App() {

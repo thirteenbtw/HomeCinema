@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useApp } from '../state';
-import { t } from '../i18n';
+import { t, tr } from '../i18n';
 import { Icon } from './Icon';
 
 // Header from the design: back/forward, glass search with type filter, live
-// background toggle and the current TV.
-export function TopBar({ types = true }: { types?: boolean }) {
+// background toggle and the current TV. On Home the search goes to the
+// catalog (all of TMDB) instead of the local library.
+export function TopBar({ types = true, catalog = false }: { types?: boolean; catalog?: boolean }) {
   const nav = useNavigate();
   const { prefs, setPrefs, devices, cast } = useApp();
   const [params] = useSearchParams();
@@ -25,7 +26,10 @@ export function TopBar({ types = true }: { types?: boolean }) {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  useEffect(() => { if (catalog) setQ(params.get('q') || ''); }, [catalog, params]);
+
   const go = (k = kind, text = q) => {
+    if (catalog) { nav(text.trim() ? `/?q=${encodeURIComponent(text.trim())}` : '/'); return; }
     if (!text.trim()) return;
     nav(`/search?q=${encodeURIComponent(text.trim())}${k ? '&kind=' + k : ''}`);
   };
@@ -40,13 +44,14 @@ export function TopBar({ types = true }: { types?: boolean }) {
         <form role="search" className="glass" onSubmit={(e) => { e.preventDefault(); go(); }}
           style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, height: 44, padding: '0 16px', borderRadius: 999, border: '1px solid var(--line)', boxShadow: '0 6px 20px var(--sh)', color: 'var(--mut)' }}>
           <Icon name="search" size={18} />
-          <label className="sr" htmlFor="q">Поиск</label>
-          <input id="q" ref={input} value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('searchPh')}
+          <label className="sr" htmlFor="q">{tr('Поиск', 'Search')}</label>
+          <input id="q" ref={input} value={q} onChange={(e) => setQ(e.target.value)} placeholder={catalog ? tr('Найти фильм или сериал', 'Find a movie or show') : t('searchPh')}
             style={{ flex: 1, minWidth: 0, border: 0, outline: 'none', background: 'transparent', font: "500 calc(14px * var(--fs)) 'Inter',sans-serif", color: 'var(--fg)' }} />
-          <span className="mono" style={{ fontSize: 'calc(11px * var(--fs))' }}>Ctrl K</span>
+          {catalog && q ? <button type="button" className="ri" style={{ width: 28, height: 28 }} aria-label={tr('Очистить', 'Clear')} onClick={() => { setQ(''); nav('/'); }}><Icon name="close" size={14} /></button>
+            : <span className="mono" style={{ fontSize: 'calc(11px * var(--fs))' }}>Ctrl K</span>}
         </form>
-        {types && (
-          <div role="group" aria-label="Тип" className="glass" style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 999, border: '1px solid var(--line)', boxShadow: '0 6px 20px var(--sh)' }}>
+        {types && !catalog && (
+          <div role="group" aria-label={tr('Тип', 'Type')} className="glass" style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 999, border: '1px solid var(--line)', boxShadow: '0 6px 20px var(--sh)' }}>
             {[['', t('all')], ['movie', t('movies')], ['show', t('shows')], ['people', t('people')]].map(([k, label]) => (
               <button key={k} className={'pill' + (kind === k ? ' on' : ' ghost')} aria-pressed={kind === k}
                 onClick={() => { setKind(k); if (q.trim()) go(k); }}>{label}</button>

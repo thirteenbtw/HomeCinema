@@ -4,15 +4,13 @@ import { useApp, useAsync } from '../state';
 import { setLang, tr } from '../i18n';
 import { FolderPicker } from '../components/FolderPicker';
 import { Icon } from '../components/Icon';
+import { Dots } from '../components/Dots';
 
 function Frame({ children }: { children: ReactNode }) {
   const { prefs } = useApp();
   return (
     <div className={`app th-${prefs.theme} ac-${prefs.accent}`} style={{ alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div aria-hidden="true" style={{ position: 'fixed', inset: 0, pointerEvents: 'none', opacity: 'var(--amb)' }}>
-        <div className="blob" style={{ width: 620, height: 620, left: '10%', top: -240, background: 'var(--acc)' }} />
-        <div className="blob" style={{ width: 520, height: 520, right: -120, bottom: -160, background: '#2D6FB5' }} />
-      </div>
+      <Dots mode="static" intensity={100} colors={['var(--acc)', 'var(--acc)']} />
       <div className="glass" style={{ position: 'relative', width: 'min(620px,100%)', borderRadius: 24, border: '1px solid var(--line)', boxShadow: '0 30px 80px var(--sh)', padding: 28, display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ width: 32, height: 32, borderRadius: 9, background: 'var(--acc)', display: 'grid', placeItems: 'center' }}><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M8 5l11 7-11 7z" fill="#FFFFFF" /></svg></span>

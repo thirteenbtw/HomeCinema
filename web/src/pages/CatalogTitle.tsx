@@ -92,7 +92,7 @@ function Detail({ d }: { d: TitleResp }) {
         <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg,#000000D0 0%,#00000080 55%,#00000020 85%)' }} />
         <nav aria-label={tr('Путь', 'Breadcrumb')} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6, fontSize: 'calc(12px * var(--fs))', fontWeight: 600 }}>
           <button onClick={() => nav(-1)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 10px', borderRadius: 999, background: '#FFFFFF2E', color: '#FFFFFF', border: 0, cursor: 'pointer', font: 'inherit' }}><Icon name="left" size={14} />{t('back')}</button>
-          <Link to={`/catalog${show ? '?kind=tv' : ''}`} style={{ color: '#FFFFFF' }}>{t('catalog')}</Link>
+          <Link to={show ? '/?kind=tv' : '/'} style={{ color: '#FFFFFF' }}>{t('home')}</Link>
           <span style={{ color: '#C9CCD1' }}>›</span><span>{x.title}</span>
         </nav>
         <div style={{ position: 'relative', display: 'flex', gap: 28, alignItems: 'flex-end', marginTop: 'auto', paddingTop: 28, flexWrap: 'wrap' }}>
