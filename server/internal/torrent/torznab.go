@@ -34,7 +34,8 @@ type SearchPrefs struct {
 type Result struct {
 	Indexer string  `json:"indexer"`
 	Title   string  `json:"title"`
-	Link    string  `json:"link"` // magnet or .torrent URL
+	Link    string  `json:"link"`             // .torrent URL, or the magnet when there is none
+	Magnet  string  `json:"magnet,omitempty"` // fallback when the .torrent cannot be fetched
 	Size    int64   `json:"size"`
 	Seeds   int     `json:"seeds"`
 	Peers   int     `json:"peers"`
@@ -166,12 +167,26 @@ func queryTorznab(ctx context.Context, client *http.Client, in Indexer, query st
 			case "peers":
 				r.Peers, _ = strconv.Atoi(a.Value)
 			case "magneturl":
-				r.Link = a.Value // prefer magnet: no extra download through the indexer
+				r.Magnet = a.Value
+			case "infohash":
+				if r.Magnet == "" && len(a.Value) == 40 {
+					r.Magnet = "magnet:?xt=urn:btih:" + strings.ToLower(a.Value) + "&dn=" + url.QueryEscape(it.Title)
+				}
 			case "size":
 				if r.Size == 0 {
 					r.Size, _ = strconv.ParseInt(a.Value, 10, 64)
 				}
 			}
+		}
+		// A .torrent carries the file list, so the download starts at once; a
+		// magnet first has to fetch it from peers. Keep both.
+		if strings.HasPrefix(r.Link, "magnet:") {
+			if r.Magnet == "" {
+				r.Magnet = r.Link
+			}
+		}
+		if r.Link == "" || strings.HasPrefix(r.Link, "magnet:") {
+			r.Link, r.Magnet = r.Magnet, ""
 		}
 		r.Quality = detectQuality(r.Title)
 		r.Lang = detectLang(r.Title)
@@ -223,8 +238,8 @@ func score(r Result, p SearchPrefs) float64 {
 	if p.MaxSizeGB > 0 && r.Size > int64(p.MaxSizeGB)<<30 {
 		s -= 30
 	}
-	if strings.HasPrefix(r.Link, "magnet:") {
-		s += 1
+	if strings.HasPrefix(r.Link, "http") {
+		s += 1 // a .torrent file skips the metadata wait
 	}
 	return s
 }
@@ -235,7 +250,7 @@ func FetchTorrent(ctx context.Context, link string) ([]byte, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
-	client := &http.Client{Timeout: 30 * time.Second, CheckRedirect: func(r *http.Request, via []*http.Request) error {
+	client := &http.Client{Timeout: 20 * time.Second, CheckRedirect: func(r *http.Request, via []*http.Request) error {
 		if r.URL.Scheme == "magnet" {
 			return http.ErrUseLastResponse
 		}

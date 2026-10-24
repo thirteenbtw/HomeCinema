@@ -96,7 +96,7 @@ func dedupe(list []Result) []Result {
 	out := list[:0]
 	for _, r := range list {
 		key := r.Link
-		if m := reBtih.FindStringSubmatch(r.Link); m != nil {
+		if m := reBtih.FindStringSubmatch(r.Link + " " + r.Magnet); m != nil {
 			key = strings.ToLower(m[1])
 		} else if r.Size > 0 {
 			key = normTitle(r.Title) + "/" + strconv.FormatInt(r.Size, 10)

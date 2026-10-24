@@ -16,7 +16,7 @@ function Frame({ children }: { children: ReactNode }) {
       <div className="glass" style={{ position: 'relative', width: 'min(620px,100%)', borderRadius: 24, border: '1px solid var(--line)', boxShadow: '0 30px 80px var(--sh)', padding: 28, display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ width: 32, height: 32, borderRadius: 9, background: 'var(--acc)', display: 'grid', placeItems: 'center' }}><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M8 5l11 7-11 7z" fill="#FFFFFF" /></svg></span>
-          <span className="disp" style={{ fontSize: 20, fontWeight: 600, letterSpacing: '.04em' }}>HomeCinema</span>
+          <span className="disp" style={{ fontSize: 'calc(20px * var(--fs))', fontWeight: 600, letterSpacing: '.04em' }}>HomeCinema</span>
         </div>
         {children}
       </div>
@@ -77,7 +77,7 @@ export function Setup() {
       {step === 0 && (
         <>
           <h1 className="h1">{tr('Добро пожаловать', 'Welcome')}</h1>
-          <div style={{ fontSize: 14, color: 'var(--fg2)', lineHeight: 1.6 }}>{tr('HomeCinema собирает фильмы и сериалы с дисков этого ПК в красивую библиотеку, играет их здесь и отправляет на ТВ. Всё работает внутри вашей сети, телеметрии нет.', 'HomeCinema turns the movies and shows on this PC into a library, plays them here and casts to your TV. Everything stays on your network.')}</div>
+          <div style={{ fontSize: 'calc(14px * var(--fs))', color: 'var(--fg2)', lineHeight: 1.6 }}>{tr('HomeCinema собирает фильмы и сериалы с дисков этого ПК в красивую библиотеку, играет их здесь и отправляет на ТВ. Всё работает внутри вашей сети, телеметрии нет.', 'HomeCinema turns the movies and shows on this PC into a library, plays them here and casts to your TV. Everything stays on your network.')}</div>
           <div role="radiogroup" aria-label={tr('Язык', 'Language')} style={{ display: 'flex', gap: 8 }}>
             {[['ru', 'Русский'], ['en', 'English']].map(([l, n]) => <button key={l} role="radio" aria-checked={lang === l} className={'pill' + (lang === l ? ' on' : '')} onClick={() => pickLang(l)}>{n}</button>)}
           </div>
@@ -89,7 +89,7 @@ export function Setup() {
           <h1 className="h1">{tr('Где ваши фильмы?', 'Where are your movies?')}</h1>
           <div className="sub">{tr('Добавьте одну или несколько папок. Подпапки и новые файлы подхватываются автоматически.', 'Add one or more folders. Subfolders and new files are picked up automatically.')}</div>
           {libs.data?.libraries.map((l) => (
-            <div key={l.id} className="row" style={{ padding: 10, borderRadius: 12, background: 'var(--bg2)' }}><Icon name="folder" size={18} /><span className="mono" style={{ fontSize: 12, flex: 1, wordBreak: 'break-all' }}>{l.path}</span><span className="sub">{l.kind === 'movies' ? tr('Фильмы', 'Movies') : l.kind === 'shows' ? tr('Сериалы', 'Shows') : tr('Авто', 'Auto')}</span></div>
+            <div key={l.id} className="row" style={{ padding: 10, borderRadius: 12, background: 'var(--bg2)' }}><Icon name="folder" size={18} /><span className="mono" style={{ fontSize: 'calc(12px * var(--fs))', flex: 1, wordBreak: 'break-all' }}>{l.path}</span><span className="sub">{l.kind === 'movies' ? tr('Фильмы', 'Movies') : l.kind === 'shows' ? tr('Сериалы', 'Shows') : tr('Авто', 'Auto')}</span></div>
           ))}
           <div className="row">
             <button className="btn btn-d sm" onClick={() => setPicker('movies')}><Icon name="film" size={16} />{tr('Папка с фильмами', 'Movies folder')}</button>
@@ -103,7 +103,7 @@ export function Setup() {
       {step === 2 && (
         <>
           <h1 className="h1">{tr('Постеры и описания', 'Posters and descriptions')}</h1>
-          <div style={{ fontSize: 14, color: 'var(--fg2)', lineHeight: 1.6 }}>
+          <div style={{ fontSize: 'calc(14px * var(--fs))', color: 'var(--fg2)', lineHeight: 1.6 }}>
             {tr('Обложки, описания и актёров даёт TMDB. Нужен бесплатный ключ API: зарегистрируйтесь на ', 'Artwork and descriptions come from TMDB. Get a free API key at ')}
             <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer">themoviedb.org</a>{tr(' и вставьте ключ ниже. Можно сделать это позже в настройках.', ' and paste it below. You can do this later in Settings.')}
           </div>

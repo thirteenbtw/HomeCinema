@@ -18,7 +18,7 @@ export function Modal({ title, onClose, children, wide }: { title: string; onClo
     <div className="modal-back" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal" role="dialog" aria-modal="true" aria-label={title} ref={ref} style={wide ? { width: 'min(820px,100%)' } : undefined}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <h2 className="h2" style={{ fontSize: 18 }}>{title}</h2>
+          <h2 className="h2" style={{ fontSize: 'calc(18px * var(--fs))' }}>{title}</h2>
           <button className="ri" aria-label={t('close')} onClick={onClose} style={{ marginLeft: 'auto' }}><Icon name="close" /></button>
         </div>
         {children}

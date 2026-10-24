@@ -5,6 +5,7 @@ import { useApp } from '../state';
 import { tr } from '../i18n';
 import { Icon, PlayGlyph } from '../components/Icon';
 import { Modal } from '../components/CastDialog';
+import { takeDroppedTorrent } from '../components/torrentDrop';
 
 type Tab = 'active' | 'stream' | 'search' | 'done' | 'seeding';
 
@@ -80,11 +81,18 @@ export default function Torrents() {
 
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault(); setDrag(false);
-    const f = e.dataTransfer.files?.[0];
+    const files = Array.from(e.dataTransfer.files || []);
+    const f = files.find((x) => /\.torrent$/i.test(x.name));
     if (f) { add({ file: f }, 'download'); return; }
-    const text = e.dataTransfer.getData('text');
+    if (files.length) { setErr(tr('Это не .torrent-файл', 'Not a .torrent file')); return; }
+    const text = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text');
     if (text) setMagnet(text.trim());
   };
+  // A .torrent dropped on another page arrives here.
+  useEffect(() => {
+    const f = takeDroppedTorrent();
+    if (f) add({ file: f }, 'download');
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = items.filter((x) => {
     switch (tab) {
@@ -123,7 +131,7 @@ export default function Torrents() {
         style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, padding: 16, borderRadius: 16, border: `1.5px dashed ${drag ? 'var(--acc)' : 'var(--line2)'}`, background: drag ? 'var(--soft)' : undefined }}>
         <button type="button" onClick={() => fileInput.current?.click()} aria-label={tr('Выбрать .torrent-файл', 'Choose a .torrent file')} style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--soft)', color: 'var(--acct)', display: 'grid', placeItems: 'center', border: 0, cursor: 'pointer' }}><Icon name="magnet" /></button>
         <input ref={fileInput} type="file" accept=".torrent,application/x-bittorrent" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) add({ file: f }, 'download'); e.target.value = ''; }} />
-        <label style={{ flex: '1 1 360px', display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: 'var(--mut2)' }}>{tr('Magnet-ссылка или .torrent — перетащите файл сюда', 'Magnet link or .torrent — drop a file here')}
+        <label style={{ flex: '1 1 360px', display: 'flex', flexDirection: 'column', gap: 4, fontSize: 'calc(12px * var(--fs))', color: 'var(--mut2)' }}>{tr('Magnet-ссылка или .torrent — перетащите файл сюда', 'Magnet link or .torrent — drop a file here')}
           <input className="inp mono" value={magnet} onChange={(e) => setMagnet(e.target.value)} placeholder="magnet:?xt=urn:btih:…" />
         </label>
         <button className="btn btn-r" disabled={busy || !magnet.trim()}><PlayGlyph />{tr('Смотреть сразу', 'Watch now')}</button>
@@ -138,7 +146,7 @@ export default function Torrents() {
               <button key={k} role="tab" aria-selected={tab === k} className={'pill' + (tab === k ? ' on' : '')} onClick={() => setTab(k)}>{l}{k !== 'search' && count(k) > 0 ? ` · ${count(k)}` : ''}</button>
             ))}
           </div>
-          {tab === 'search' ? <SearchTab onAdd={(link, mode) => add({ link }, mode)} busy={busy} initial={params.get('q') || ''} /> : (
+          {tab === 'search' ? <SearchTab onAdd={(r, mode) => add({ link: r.link, magnet: r.magnet }, mode)} busy={busy} initial={params.get('q') || ''} /> : (
             <>
               {filtered.length === 0 ? (
                 <div className="empty">{tab === 'active' ? tr('Нет активных загрузок. Вставьте magnet-ссылку выше или найдите раздачу во вкладке «Поиск».', 'No active downloads. Paste a magnet link above.') : tr('Здесь пока пусто', 'Nothing here yet')}</div>
@@ -160,17 +168,18 @@ export default function Torrents() {
                               <td className="td" style={{ maxWidth: 340 }}>
                                 <div style={{ fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.name}>{r.name || r.hash}</div>
                                 <div className="sub">{r.size ? fmtSize(r.size) : '—'}{r.fileCount > 1 ? ` · ${r.fileCount} ${tr('файлов', 'files')}` : ''}{r.mode === 'stream' ? ` · ${tr('последовательно', 'sequential')}` : ''}{r.error ? ` · ${r.error}` : ''}</div>
+                                {r.status === 'meta' && r.hint && <div className="sub" style={{ color: 'var(--err-fg)', whiteSpace: 'normal' }}>{r.hint}</div>}
                               </td>
                               <td className="td" style={{ width: 180 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                   <div style={{ flex: 1, height: 4, borderRadius: 2, background: 'var(--line2)' }}><div style={{ height: 4, borderRadius: 2, width: `${r.progress * 100}%`, background: r.status === 'done' || r.status === 'seeding' ? '#2F9E62' : r.status === 'paused' ? 'var(--mut)' : 'var(--acc)' }} /></div>
-                                  <span className="mono" style={{ fontSize: 11 }}>{Math.floor(r.progress * 100)}%</span>
+                                  <span className="mono" style={{ fontSize: 'calc(11px * var(--fs))' }}>{Math.floor(r.progress * 100)}%</span>
                                 </div>
                               </td>
                               <td className="td"><span className="tag" style={{ background: bg, color: fg }}>{tr(sl[0], sl[1])}</span></td>
-                              <td className="td mono" style={{ fontSize: 12 }}>{r.status === 'seeding' ? '↑ ' + fmtSpeed(r.up) : fmtSpeed(r.down)}</td>
-                              <td className="td mono" style={{ fontSize: 12 }}>{r.seeds} / {r.peers}</td>
-                              <td className="td" style={{ fontSize: 12, color: 'var(--mut2)' }}>{r.status === 'seeding' ? `${tr('рейтинг', 'ratio')} ${r.ratio.toFixed(2)}` : r.status === 'done' ? '—' : eta(r.eta)}</td>
+                              <td className="td mono" style={{ fontSize: 'calc(12px * var(--fs))' }}>{r.status === 'seeding' ? '↑ ' + fmtSpeed(r.up) : fmtSpeed(r.down)}</td>
+                              <td className="td mono" style={{ fontSize: 'calc(12px * var(--fs))' }}>{r.seeds} / {r.peers}</td>
+                              <td className="td" style={{ fontSize: 'calc(12px * var(--fs))', color: 'var(--mut2)' }}>{r.status === 'seeding' ? `${tr('рейтинг', 'ratio')} ${r.ratio.toFixed(2)}` : r.status === 'done' ? '—' : eta(r.eta)}</td>
                               <td className="td" style={{ whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
                                 <button className="ri" style={{ width: 36, height: 36 }} aria-label={r.status === 'paused' ? tr('Продолжить', 'Resume') : tr('Пауза', 'Pause')} onClick={() => patch(r.hash, { paused: r.status !== 'paused' })}>
                                   {r.status === 'paused' ? <PlayGlyph size={14} /> : <Icon name="pause2" size={18} />}
@@ -188,7 +197,7 @@ export default function Torrents() {
                   </table>
                 </div>
               )}
-              <p style={{ margin: 0, fontSize: 12, color: 'var(--mut)' }}>{tr('После загрузки файлы автоматически переносятся в библиотеку: Фильмы / Сериалы / Сезон N. Исполняемые файлы из раздач не запускаются.', 'Finished files move to the library automatically. Executables from torrents are never opened.')}</p>
+              <p style={{ margin: 0, fontSize: 'calc(12px * var(--fs))', color: 'var(--mut)' }}>{tr('После загрузки файлы автоматически переносятся в библиотеку: Фильмы / Сериалы / Сезон N. Исполняемые файлы из раздач не запускаются.', 'Finished files move to the library automatically. Executables from torrents are never opened.')}</p>
             </>
           )}
         </section>
@@ -196,13 +205,13 @@ export default function Torrents() {
         {streamT && <StreamPanel t={streamT} onCast={(file) => openCast({ torrent: streamT.hash, file, title: streamT.name })} onKeep={(keep) => patch(streamT.hash, { keep })} />}
       </div>
 
-      <p className="glass" style={{ margin: 0, padding: '12px 16px', borderRadius: 12, border: '1px solid var(--line)', fontSize: 12, color: 'var(--mut2)' }}>
+      <p className="glass" style={{ margin: 0, padding: '12px 16px', borderRadius: 12, border: '1px solid var(--line)', fontSize: 'calc(12px * var(--fs))', color: 'var(--mut2)' }}>
         {tr('Ответственность за законность загружаемого и раздаваемого контента лежит на пользователе. Источники поиска (Torznab / Jackett / Prowlarr) добавляете вы сами — в комплекте их нет.', 'You are responsible for the legality of content you download and share. Search sources (Torznab / Jackett / Prowlarr) are added by you; none are bundled.')}
       </p>
 
       {risk && (
         <Modal title={tr('Перед первой загрузкой', 'Before your first download')} onClose={() => setRisk(null)}>
-          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6 }}>{tr('Торрент-клиент скачивает и одновременно раздаёт данные другим участникам. Ответственность за законность загружаемого и раздаваемого контента лежит на вас. Рекомендуем привязать клиент к VPN в настройках — тогда при обрыве VPN загрузки остановятся.', 'The torrent client downloads and shares data with others at the same time. You are responsible for the legality of the content. We recommend binding the client to a VPN in Settings.')}</p>
+          <p style={{ margin: 0, fontSize: 'calc(14px * var(--fs))', lineHeight: 1.6 }}>{tr('Торрент-клиент скачивает и одновременно раздаёт данные другим участникам. Ответственность за законность загружаемого и раздаваемого контента лежит на вас. Рекомендуем привязать клиент к VPN в настройках — тогда при обрыве VPN загрузки остановятся.', 'The torrent client downloads and shares data with others at the same time. You are responsible for the legality of the content. We recommend binding the client to a VPN in Settings.')}</p>
           <div className="row">
             <button className="btn btn-r sm" onClick={acceptRisk}>{tr('Понимаю, продолжить', 'I understand, continue')}</button>
             <Link className="btn btn-l sm" to="/settings#torrents">{tr('Настроить VPN', 'Set up VPN')}</Link>
@@ -247,7 +256,7 @@ function Files({ hash, onPlay }: { hash: string; onPlay: (i: number) => void }) 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       {info.files.map((f) => (
-        <div key={f.index} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12 }}>
+        <div key={f.index} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 'calc(12px * var(--fs))' }}>
           <input type="checkbox" checked={f.wanted} disabled={f.blocked} onChange={(e) => toggle(f.index, e.target.checked)} aria-label={f.path} style={{ width: 16, height: 16, accentColor: 'var(--acc)' }} />
           <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={f.path}>{f.path}{f.blocked && <span className="tag" style={{ marginLeft: 6, background: 'var(--err-bg)', color: 'var(--err-fg)' }}>{tr('исполняемый — заблокирован', 'executable — blocked')}</span>}</span>
           <span className="mono" style={{ color: 'var(--mut)' }}>{Math.floor(f.progress * 100)}% · {fmtSize(f.size)}</span>
@@ -275,31 +284,37 @@ function StreamPanel({ t, onCast, onKeep }: { t: TorrentInfo; onCast: (file: num
   return (
     <aside aria-label={tr('Стриминг', 'Streaming')} style={{ flex: '1 1 380px', minWidth: 0, borderRadius: 20, background: 'var(--panel)', border: '1px solid var(--line)', color: '#FFFFFF', padding: 20, display: 'flex', flexDirection: 'column', gap: 16, alignSelf: 'flex-start' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 999, background: t.mode === 'stream' ? 'var(--acc)' : '#FFFFFF2E' }}>{t.mode === 'stream' ? tr('Смотреть сразу', 'Watch now') : tr('Загрузка', 'Download')}</span>
-        <span style={{ fontSize: 12, color: '#A9ADB4' }}>{t.mode === 'stream' ? tr('последовательная загрузка', 'sequential download') : tr('обычная загрузка', 'regular download')}</span>
+        <span style={{ fontSize: 'calc(11px * var(--fs))', fontWeight: 700, padding: '3px 8px', borderRadius: 999, background: t.mode === 'stream' ? 'var(--acc)' : '#FFFFFF2E' }}>{t.mode === 'stream' ? tr('Смотреть сразу', 'Watch now') : tr('Загрузка', 'Download')}</span>
+        <span style={{ fontSize: 'calc(12px * var(--fs))', color: '#A9ADB4' }}>{t.mode === 'stream' ? tr('последовательная загрузка', 'sequential download') : tr('обычная загрузка', 'regular download')}</span>
       </div>
-      <div className="disp" style={{ fontSize: 26, fontWeight: 600, lineHeight: 1.05, wordBreak: 'break-word' }}>{st?.fileName?.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, '') || t.name}</div>
-      <div style={{ fontSize: 12, color: '#A9ADB4' }}>{[st ? fmtSize(st.size) : t.size ? fmtSize(t.size) : '', `${Math.floor(t.progress * 100)}% ${tr('загружено', 'downloaded')}`].filter(Boolean).join(' · ')}</div>
-      {err && !st && <div style={{ fontSize: 12, color: '#FFB4B8' }}>{t.status === 'meta' ? tr('Получаем метаданные от пиров…', 'Fetching metadata from peers…') : err}</div>}
-      {st && !st.numPieces && <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: '#A9ADB4' }}><span className="spin" />{tr('Получаем метаданные от пиров…', 'Fetching metadata from peers…')}</div>}
+      <div className="disp" style={{ fontSize: 'calc(26px * var(--fs))', fontWeight: 600, lineHeight: 1.05, wordBreak: 'break-word' }}>{st?.fileName?.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, '') || t.name}</div>
+      <div style={{ fontSize: 'calc(12px * var(--fs))', color: '#A9ADB4' }}>{[st ? fmtSize(st.size) : t.size ? fmtSize(t.size) : '', `${Math.floor(t.progress * 100)}% ${tr('загружено', 'downloaded')}`].filter(Boolean).join(' · ')}</div>
+      {err && !st && <div style={{ fontSize: 'calc(12px * var(--fs))', color: '#FFB4B8' }}>{t.status === 'meta' ? tr('Получаем метаданные от пиров…', 'Fetching metadata from peers…') : err}</div>}
+      {st && !st.numPieces && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 'calc(12px * var(--fs))', color: '#A9ADB4' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span className="spin" />{tr('Получаем метаданные от пиров…', 'Fetching metadata from peers…')}</div>
+          <div className="mono">{tr('Найдено пиров', 'Peers found')}: {st.known} · {tr('подключено', 'connected')}: {st.peers} · DHT: {st.dhtNodes < 0 ? tr('выкл.', 'off') : `${st.dhtNodes} ${tr('узлов', 'nodes')}`}</div>
+          {st.hint && <div style={{ color: '#FFD28A', lineHeight: 1.45 }}>{st.hint}</div>}
+        </div>
+      )}
       {st && st.numPieces > 0 && (
         <>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'calc(12px * var(--fs))' }}>
               <span style={{ fontWeight: 700 }}>{ready ? tr('Буфер готов — можно смотреть', 'Buffer ready — you can watch') : tr('Буферизация…', 'Buffering…')}</span>
               <span className="mono" style={{ color: '#A9ADB4' }}>{Math.round(st.buffered / 1048576)} / {Math.round(st.target / 1048576)} {tr('МБ', 'MB')}</span>
             </div>
             <div style={{ height: 6, borderRadius: 3, background: '#FFFFFF26' }}><div style={{ height: 6, borderRadius: 3, width: `${bufPct * 100}%`, background: ready ? '#3CCB7F' : 'var(--acc)', transition: 'width .5s' }} /></div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'calc(12px * var(--fs))' }}>
               <span style={{ fontWeight: 700 }}>{tr('Карта кусков', 'Piece map')}</span>
               <span style={{ color: '#A9ADB4' }}>{st.numPieces.toLocaleString('ru-RU')} {tr('кусков', 'pieces')} · {fmtSize(st.pieceSize)}</span>
             </div>
             <div role="img" aria-label={tr(`Карта кусков: загружено ${Math.floor(st.progress * 100)}%`, `Piece map: ${Math.floor(st.progress * 100)}% downloaded`)} style={{ display: 'grid', gridTemplateColumns: 'repeat(40,minmax(0,1fr))', gap: 2 }}>
               {(st.pieces || []).map((p, i) => <div key={i} style={{ aspectRatio: '1', borderRadius: 1, background: colors[p] || colors[0] }} />)}
             </div>
-            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', fontSize: 11, color: '#C9CCD1' }}>
+            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', fontSize: 'calc(11px * var(--fs))', color: '#C9CCD1' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 8, height: 8, background: '#FFFFFF' }} />{tr('Загружено', 'Downloaded')}</span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 8, height: 8, background: 'var(--acc)' }} />{tr('Приоритет (позиция плеера)', 'Priority (player position)')}</span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 8, height: 8, background: '#3A3C41' }} />{tr('Нет', 'Missing')}</span>
@@ -316,7 +331,7 @@ function StreamPanel({ t, onCast, onKeep }: { t: TorrentInfo; onCast: (file: num
           </div>
         </>
       )}
-      <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#D4D7DC', minHeight: 44 }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 'calc(13px * var(--fs))', color: '#D4D7DC', minHeight: 44 }}>
         <input type="checkbox" checked={t.keep} onChange={(e) => onKeep(e.target.checked)} style={{ width: 18, height: 18, accentColor: 'var(--acc)' }} />
         {tr('Сохранить в библиотеку после просмотра', 'Keep in library after watching')}
       </label>
@@ -325,10 +340,10 @@ function StreamPanel({ t, onCast, onKeep }: { t: TorrentInfo; onCast: (file: num
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
-  return <div style={{ padding: 10, borderRadius: 10, background: '#FFFFFF14' }}><div style={{ fontSize: 11, color: '#A9ADB4' }}>{label}</div><div className="mono" style={{ fontSize: 15 }}>{value}</div></div>;
+  return <div style={{ padding: 10, borderRadius: 10, background: '#FFFFFF14' }}><div style={{ fontSize: 'calc(11px * var(--fs))', color: '#A9ADB4' }}>{label}</div><div className="mono" style={{ fontSize: 'calc(15px * var(--fs))' }}>{value}</div></div>;
 }
 
-function SearchTab({ onAdd, busy, initial }: { onAdd: (link: string, mode: 'stream' | 'download') => void; busy: boolean; initial: string }) {
+function SearchTab({ onAdd, busy, initial }: { onAdd: (r: SearchResult, mode: 'stream' | 'download') => void; busy: boolean; initial: string }) {
   const [q, setQ] = useState(initial);
   const [res, setRes] = useState<SearchResult[] | null>(null);
   const [errs, setErrs] = useState<string[]>([]);
@@ -364,12 +379,12 @@ function SearchTab({ onAdd, busy, initial }: { onAdd: (link: string, mode: 'stre
                     <div className="sub">{[r.lang, r.date?.slice(0, 10)].filter(Boolean).join(' · ')}</div>
                   </td>
                   <td className="td">{r.quality || '—'}</td>
-                  <td className="td mono" style={{ fontSize: 12 }}>{fmtSize(r.size)}</td>
-                  <td className="td mono" style={{ fontSize: 12 }}>{r.seeds}</td>
-                  <td className="td" style={{ fontSize: 12, color: 'var(--mut2)' }}>{r.indexer}</td>
+                  <td className="td mono" style={{ fontSize: 'calc(12px * var(--fs))' }}>{fmtSize(r.size)}</td>
+                  <td className="td mono" style={{ fontSize: 'calc(12px * var(--fs))' }}>{r.seeds}</td>
+                  <td className="td" style={{ fontSize: 'calc(12px * var(--fs))', color: 'var(--mut2)' }}>{r.indexer}</td>
                   <td className="td" style={{ whiteSpace: 'nowrap' }}>
-                    <button className="btn btn-r sm" style={{ height: 32, padding: '0 12px' }} disabled={busy} onClick={() => onAdd(r.link, 'stream')}><PlayGlyph size={12} />{tr('Смотреть', 'Watch')}</button>{' '}
-                    <button className="btn btn-l sm" style={{ height: 32, padding: '0 12px' }} disabled={busy} onClick={() => onAdd(r.link, 'download')} aria-label={tr('Скачать', 'Download')}><Icon name="download" size={16} /></button>
+                    <button className="btn btn-r sm" style={{ height: 32, padding: '0 12px' }} disabled={busy} onClick={() => onAdd(r, 'stream')}><PlayGlyph size={12} />{tr('Смотреть', 'Watch')}</button>{' '}
+                    <button className="btn btn-l sm" style={{ height: 32, padding: '0 12px' }} disabled={busy} onClick={() => onAdd(r, 'download')} aria-label={tr('Скачать', 'Download')}><Icon name="download" size={16} /></button>
                   </td>
                 </tr>
               ))}
