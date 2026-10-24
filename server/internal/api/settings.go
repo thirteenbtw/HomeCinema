@@ -23,9 +23,9 @@ import (
 	"github.com/thirteenbtw/homecinema/server/internal/torrent"
 )
 
-var generalKeys = []string{"metaLang", "uiLang", "hwaccel", "quality", "maxStreams", "tonemap", "externalPlayer", "useExternal", "setupDone", "subLang", "autoNext", "tmdbApi", "tmdbImg", "metaProvider"}
+var generalKeys = []string{"metaLang", "uiLang", "hwaccel", "quality", "maxStreams", "tonemap", "externalPlayer", "useExternal", "setupDone", "subLang", "autoNext", "tmdbApi", "tmdbImg", "tmdbVia"}
 
-var generalDefaults = map[string]string{"metaLang": "ru-RU", "uiLang": "ru", "hwaccel": "auto", "quality": "original", "maxStreams": "2", "tonemap": "1", "useExternal": "", "setupDone": "", "subLang": "rus", "autoNext": "1", "metaProvider": "kinopoisk"}
+var generalDefaults = map[string]string{"metaLang": "ru-RU", "uiLang": "ru", "hwaccel": "auto", "quality": "original", "maxStreams": "2", "tonemap": "1", "useExternal": "", "setupDone": "", "subLang": "rus", "autoNext": "1", "tmdbVia": "cub"}
 
 func (s *Server) getSettings(w http.ResponseWriter, r *http.Request) error {
 	out := map[string]any{}
@@ -36,12 +36,6 @@ func (s *Server) getSettings(w http.ResponseWriter, r *http.Request) error {
 	out["tmdbKeySet"] = key != ""
 	if key != "" {
 		out["tmdbKeyTail"] = tail(key, 4)
-	}
-	if k := s.Store.Setting("kpKey", ""); k != "" {
-		out["kpKeySet"] = true
-		out["kpKeyTail"] = tail(k, 4)
-	} else {
-		out["kpKeySet"] = false
 	}
 	out["passwordSet"] = s.Store.Setting("password", "") != ""
 	out["hw"] = s.Trans.HW()
@@ -54,8 +48,7 @@ func (s *Server) putSettings(w http.ResponseWriter, r *http.Request) error {
 	if err := readJSON(r, &b); err != nil {
 		return err
 	}
-	oldAPI, oldImg := s.Store.Setting("tmdbApi", ""), s.Store.Setting("tmdbImg", "")
-	oldProvider := s.Store.Setting("metaProvider", generalDefaults["metaProvider"])
+	oldAPI, oldImg, oldVia := s.Store.Setting("tmdbApi", ""), s.Store.Setting("tmdbImg", ""), s.Store.Setting("tmdbVia", generalDefaults["tmdbVia"])
 	for _, k := range generalKeys {
 		if v, ok := b[k]; ok {
 			if err := s.Store.SetSetting(k, fmt.Sprint(v)); err != nil {
@@ -63,30 +56,12 @@ func (s *Server) putSettings(w http.ResponseWriter, r *http.Request) error {
 			}
 		}
 	}
-	if v, ok := b["kpKey"].(string); ok {
-		v = strings.TrimSpace(v)
-		if err := s.Store.SetSetting("kpKey", v); err != nil {
-			return err
-		}
-		if v != "" && s.Store.Setting("metaProvider", generalDefaults["metaProvider"]) == "kinopoisk" {
-			if err := s.TMDB.Check(r.Context()); err != nil {
-				return badRequest("ключ Кинопоиска не подошёл: %v", err)
-			}
-			s.Store.ResetUnmatched()
-			s.Scanner.KickMetadata()
-		}
-	}
-	if v, ok := b["metaProvider"].(string); ok && v != oldProvider {
-		// Library ids belong to the old provider: match everything again.
-		s.Store.ResetAllMatches()
-		s.Scanner.KickMetadata()
-	}
 	if v, ok := b["tmdbKey"].(string); ok {
 		v = strings.TrimSpace(v)
 		if err := s.Store.SetSetting("tmdbKey", v); err != nil {
 			return err
 		}
-		if v != "" && s.Store.Setting("metaProvider", generalDefaults["metaProvider"]) == "tmdb" {
+		if v != "" {
 			if err := s.TMDB.Check(r.Context()); err != nil {
 				return badRequest("ключ TMDB не подошёл: %v", err)
 			}
@@ -96,10 +71,12 @@ func (s *Server) putSettings(w http.ResponseWriter, r *http.Request) error {
 	}
 	_, api := b["tmdbApi"]
 	_, img := b["tmdbImg"]
-	if (api || img) && s.Store.Setting("tmdbKey", "") != "" && s.Store.Setting("metaProvider", generalDefaults["metaProvider"]) == "tmdb" {
+	_, via := b["tmdbVia"]
+	if (api || img || via) && s.Store.Setting("tmdbKey", "") != "" {
 		if err := s.TMDB.Check(r.Context()); err != nil {
 			_ = s.Store.SetSetting("tmdbApi", oldAPI)
 			_ = s.Store.SetSetting("tmdbImg", oldImg)
+			_ = s.Store.SetSetting("tmdbVia", oldVia)
 			return badRequest("TMDB так не отвечает, настройка не изменена: %v", err)
 		}
 		s.Store.ResetUnmatched()
@@ -276,13 +253,9 @@ func (s *Server) diagnostics(w http.ResponseWriter, r *http.Request) error {
 	}
 	out = append(out, check{"tv", "ТВ в сети", online > 0, online == 0, fmt.Sprintf("Google Cast: доступно %d из %d", online, len(devs))})
 
-	name := s.TMDB.ProviderName()
 	key := s.Store.Setting("tmdbKey", "")
-	if name != "TMDB" {
-		key = s.Store.Setting("kpKey", "")
-	}
 	if key == "" {
-		out = append(out, check{"tmdb", name, false, true, "Ключ не задан — постеры и описания не подтянутся"})
+		out = append(out, check{"tmdb", "TMDB", false, true, "Ключ не задан — постеры и описания не подтянутся"})
 	} else {
 		tmdbCheck.Lock()
 		if time.Since(tmdbCheck.at) > time.Minute || tmdbCheck.key != key {
@@ -293,9 +266,9 @@ func (s *Server) diagnostics(w http.ResponseWriter, r *http.Request) error {
 		tmdbCheck.Unlock()
 		size := dirSize(filepath.Join(s.Cfg.DataDir, "images"))
 		if err != nil {
-			out = append(out, check{"tmdb", name, false, true, err.Error() + fmt.Sprintf(" · кэш %.1f ГБ, работаем офлайн", float64(size)/(1<<30))})
+			out = append(out, check{"tmdb", "TMDB", false, true, err.Error() + fmt.Sprintf(" · кэш %.1f ГБ, работаем офлайн", float64(size)/(1<<30))})
 		} else {
-			out = append(out, check{"tmdb", name, true, false, fmt.Sprintf("Ключ работает · кэш %.1f ГБ", float64(size)/(1<<30))})
+			out = append(out, check{"tmdb", "TMDB", true, false, fmt.Sprintf("Ключ работает · кэш %.1f ГБ", float64(size)/(1<<30))})
 		}
 	}
 

@@ -330,7 +330,7 @@ func (sc *Scanner) matchPending(ctx context.Context) {
 
 func isNetErr(err error) bool {
 	s := err.Error()
-	return strings.Contains(s, "dial") || strings.Contains(s, "timeout") || strings.Contains(s, "no such host") || strings.Contains(s, "неверный ключ") || strings.Contains(s, "лимит") || strings.Contains(s, "нет связи")
+	return strings.Contains(s, "dial") || strings.Contains(s, "timeout") || strings.Contains(s, "no such host") || strings.Contains(s, "неверный ключ") || strings.Contains(s, "нет связи")
 }
 
 func (sc *Scanner) matchOne(ctx context.Context, p store.Pending) error {

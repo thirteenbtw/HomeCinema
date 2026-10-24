@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/thirteenbtw/homecinema/server/internal/store"
@@ -24,42 +25,78 @@ import (
 var apiBase = "https://api.themoviedb.org/3"
 var imgBase = "https://image.tmdb.org/t/p/"
 
-// Mirror is an alternative address for the TMDB API and images, for
-// networks where TMDB itself is blocked. Empty fields mean TMDB directly.
+// Mirror is an address for the TMDB API and images. Empty fields mean TMDB
+// itself; a mirror (such as CUB, which Lampa uses) helps where TMDB is
+// blocked. The user's own TMDB key is sent through it either way.
 type Mirror struct {
 	API   string // e.g. https://example.org/3
 	Image string // e.g. https://example.org/t/p/
 }
 
-var ErrNoKey = errors.New("ключ источника данных не задан")
+// CUB is the TMDB proxy run for Lampa, under its current and older domains.
+var CUB = []Mirror{
+	{API: "https://apitmdb.cub.red/3", Image: "https://imagetmdb.cub.red/t/p"},
+	{API: "https://apitmdb.cub.rip/3", Image: "https://imagetmdb.cub.rip/t/p"},
+	{API: "https://apitmdb.cub.watch/3", Image: "https://imagetmdb.cub.watch/t/p"},
+}
+
+var ErrNoKey = errors.New("TMDB key is not set")
 
 type Client struct {
 	Key      func() string // v3 api key or v4 read access token
 	Lang     func() string // e.g. ru-RU
 	ImageDir string
-	Mirror   func() Mirror // optional
-	Provider func() string // "kinopoisk" or "tmdb"
-	KPKey    func() string // Kinopoisk API key
+	Mirrors  func() []Mirror // tried in order until one answers; nil or empty = TMDB directly
 	http     *http.Client
+	good     atomic.Int32 // index of the mirror that answered last
 }
 
 func New(imageDir string, key, lang func() string) *Client {
 	return &Client{Key: key, Lang: lang, ImageDir: imageDir, http: &http.Client{Timeout: 20 * time.Second, Transport: newTransport()}}
 }
 
-func (c *Client) bases() (api, img string) {
+func (c *Client) mirrors() []Mirror {
+	var list []Mirror
+	if c.Mirrors != nil {
+		list = c.Mirrors()
+	}
+	if len(list) == 0 {
+		list = []Mirror{{}}
+	}
+	return list
+}
+
+func (m Mirror) bases() (api, img string) {
 	api, img = apiBase, imgBase
-	if c.Mirror != nil {
-		m := c.Mirror()
-		if v := strings.TrimRight(strings.TrimSpace(m.API), "/"); v != "" {
-			api = v
-		}
-		if v := strings.TrimRight(strings.TrimSpace(m.Image), "/"); v != "" {
-			img = v + "/"
-		}
+	if v := strings.TrimRight(strings.TrimSpace(m.API), "/"); v != "" {
+		api = v
+	}
+	if v := strings.TrimRight(strings.TrimSpace(m.Image), "/"); v != "" {
+		img = v + "/"
 	}
 	return api, img
 }
+
+// order lists the mirrors starting with the one that answered last.
+func (c *Client) order() []Mirror {
+	list := c.mirrors()
+	g := int(c.good.Load())
+	if g <= 0 || g >= len(list) {
+		return list
+	}
+	return append(append([]Mirror{list[g]}, list[:g]...), list[g+1:]...)
+}
+
+func (c *Client) remember(m Mirror) {
+	for i, x := range c.mirrors() {
+		if x == m {
+			c.good.Store(int32(i))
+			return
+		}
+	}
+}
+
+func (c *Client) bases() (api, img string) { return c.order()[0].bases() }
 
 // netErr describes a connection failure without the request URL, which
 // carries the API key.
@@ -68,7 +105,7 @@ func netErr(err error) error {
 	if errors.As(err, &ue) {
 		err = ue.Err
 	}
-	return fmt.Errorf("нет связи с TMDB: %v. Если TMDB заблокирован у провайдера, включите VPN или укажите зеркало TMDB в настройках", err)
+	return fmt.Errorf("нет связи с TMDB: %v. Если TMDB заблокирован у провайдера, включите VPN или выберите зеркало TMDB в настройках", err)
 }
 
 func (c *Client) get(ctx context.Context, path string, q url.Values, out any) error {
@@ -79,19 +116,46 @@ func (c *Client) get(ctx context.Context, path string, q url.Values, out any) er
 	if q == nil {
 		q = url.Values{}
 	}
-	base, _ := c.bases()
+	var lastErr error
+	for _, m := range c.order() {
+		base, _ := m.bases()
+		err := c.getFrom(ctx, base, path, q, key, out)
+		var ne *netError
+		if errors.As(err, &ne) {
+			lastErr = err
+			continue // this address is unreachable: try the next mirror
+		}
+		if err == nil {
+			c.remember(m)
+		}
+		return err
+	}
+	return lastErr
+}
+
+// netError is a failure to reach an address at all (or a broken proxy
+// answering in its place), as opposed to an answer from TMDB.
+type netError struct{ err error }
+
+func (e *netError) Error() string { return e.err.Error() }
+
+func (c *Client) getFrom(ctx context.Context, base, path string, q url.Values, key string, out any) error {
+	q2 := url.Values{}
+	for k, v := range q {
+		q2[k] = v
+	}
 	req, _ := http.NewRequestWithContext(ctx, "GET", base+path, nil)
 	if len(key) > 40 { // v4 token
 		req.Header.Set("Authorization", "Bearer "+key)
 	} else {
-		q.Set("api_key", key)
+		q2.Set("api_key", key)
 	}
-	req.URL.RawQuery = q.Encode()
+	req.URL.RawQuery = q2.Encode()
 	req.Header.Set("Accept", "application/json")
 	for attempt := 0; ; attempt++ {
 		resp, err := c.http.Do(req)
 		if err != nil {
-			return netErr(err)
+			return &netError{netErr(err)}
 		}
 		if resp.StatusCode == 429 && attempt < 3 {
 			resp.Body.Close()
@@ -100,22 +164,23 @@ func (c *Client) get(ctx context.Context, path string, q url.Values, out any) er
 			continue
 		}
 		defer resp.Body.Close()
-		if resp.StatusCode == 401 {
+		switch {
+		case resp.StatusCode == 401:
 			return fmt.Errorf("TMDB: неверный ключ")
-		}
-		if resp.StatusCode != 200 {
+		case resp.StatusCode >= 500 || resp.StatusCode == 403:
+			return &netError{fmt.Errorf("нет связи с TMDB: %s отвечает %s", req.URL.Host, resp.Status)}
+		case resp.StatusCode != 200:
 			return fmt.Errorf("TMDB %s: %s", path, resp.Status)
 		}
-		return json.NewDecoder(resp.Body).Decode(out)
+		if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
+			return &netError{fmt.Errorf("нет связи с TMDB: %s отвечает не как TMDB", req.URL.Host)}
+		}
+		return nil
 	}
 }
 
 // Check verifies that the configured key works.
 func (c *Client) Check(ctx context.Context) error {
-	if c.kp() {
-		var f kpFilm
-		return c.kpGet(ctx, "/api/v2.2/films/301", nil, &f)
-	}
 	var v map[string]any
 	return c.get(ctx, "/configuration", nil, &v)
 }
@@ -156,9 +221,6 @@ func (r SearchResult) Year() int {
 // Search returns candidates for kind "movie" or "tv". Used by the matcher and
 // by the "fix wrong match" dialog.
 func (c *Client) Search(ctx context.Context, kind, query string, year int) ([]SearchResult, error) {
-	if c.kp() {
-		return c.kpSearch(ctx, kind, query, year)
-	}
 	q := url.Values{"query": {query}, "language": {c.Lang()}, "include_adult": {"false"}}
 	if year > 0 {
 		if kind == "movie" {
@@ -275,9 +337,6 @@ type details struct {
 
 // Details loads full metadata for a movie or a show and caches its images.
 func (c *Client) Details(ctx context.Context, kind string, id int64) (store.Meta, error) {
-	if c.kp() {
-		return c.kpDetails(ctx, id)
-	}
 	var d details
 	extra := "credits,release_dates"
 	if kind == "tv" {
@@ -329,9 +388,6 @@ func (c *Client) Details(ctx context.Context, kind string, id int64) (store.Meta
 
 // Episode loads an episode title and description.
 func (c *Client) Episode(ctx context.Context, showID int64, season, episode int) (store.Meta, error) {
-	if c.kp() {
-		return c.kpEpisode(ctx, showID, season, episode)
-	}
 	var e struct {
 		Name     string  `json:"name"`
 		Overview string  `json:"overview"`
@@ -375,38 +431,31 @@ func (c *Client) cacheImage(ctx context.Context, size, path string) string {
 		return ""
 	}
 	h := sha1.Sum([]byte(size + path))
-	_, img := c.bases()
-	return c.fetchImage(ctx, img+size+path, hex.EncodeToString(h[:8])+filepath.Ext(path))
-}
-
-// cacheURL caches an image given by its full address (Kinopoisk).
-func (c *Client) cacheURL(ctx context.Context, raw string) string {
-	if raw == "" {
-		return ""
-	}
-	h := sha1.Sum([]byte(raw))
-	ext := filepath.Ext(raw)
-	if len(ext) > 5 || ext == "" {
-		ext = ".jpg"
-	}
-	return c.fetchImage(ctx, raw, hex.EncodeToString(h[:8])+ext)
-}
-
-func (c *Client) fetchImage(ctx context.Context, src, name string) string {
+	name := hex.EncodeToString(h[:8]) + filepath.Ext(path)
 	dst := filepath.Join(c.ImageDir, name)
 	local := "/api/images/" + name
 	if _, err := os.Stat(dst); err == nil {
 		return local
 	}
-	req, _ := http.NewRequestWithContext(ctx, "GET", src, nil)
-	resp, err := c.http.Do(req)
-	if err != nil {
+	var resp *http.Response
+	for _, m := range c.order() {
+		_, img := m.bases()
+		req, _ := http.NewRequestWithContext(ctx, "GET", img+size+path, nil)
+		r, err := c.http.Do(req)
+		if err != nil {
+			continue
+		}
+		if r.StatusCode != 200 {
+			r.Body.Close()
+			continue
+		}
+		resp = r
+		break
+	}
+	if resp == nil {
 		return ""
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		return ""
-	}
 	tmp := dst + ".part"
 	f, err := os.Create(tmp)
 	if err != nil {

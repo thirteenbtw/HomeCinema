@@ -110,16 +110,37 @@ func TestMirror(t *testing.T) {
 	c := fakeTMDB(t)
 	real := apiBase
 	apiBase = "http://127.0.0.1:1" // TMDB "blocked"
-	c.Mirror = func() Mirror { return Mirror{API: real + "/", Image: imgBase} }
+	c.Mirrors = func() []Mirror { return []Mirror{{API: real + "/", Image: imgBase}} }
 	if _, err := c.Browse(context.Background(), BrowseQuery{Kind: "movie", List: "trending"}); err != nil {
 		t.Fatalf("mirror not used: %v", err)
 	}
-	c.Mirror = nil
+	c.Mirrors = nil
 	cacheMu.Lock()
 	cache = map[string]cached{}
 	cacheMu.Unlock()
 	_, err := c.Browse(context.Background(), BrowseQuery{Kind: "movie", List: "trending"})
 	if err == nil || strings.Contains(err.Error(), "api_key") {
 		t.Fatalf("want a connection error without the key, got %v", err)
+	}
+}
+
+func TestMirrorFallback(t *testing.T) {
+	c := fakeTMDB(t)
+	real := apiBase
+	broken := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(502) }))
+	defer broken.Close()
+	calls := 0
+	c.Mirrors = func() []Mirror {
+		calls++
+		return []Mirror{{API: "http://127.0.0.1:1/3"}, {API: broken.URL}, {API: real}}
+	}
+	if _, err := c.Browse(context.Background(), BrowseQuery{Kind: "movie", List: "trending"}); err != nil {
+		t.Fatalf("fallback failed: %v", err)
+	}
+	if c.good.Load() != 2 {
+		t.Fatalf("working mirror not remembered: %d", c.good.Load())
+	}
+	if first := c.order()[0]; first.API != real {
+		t.Fatalf("order starts with %+v", first)
 	}
 }

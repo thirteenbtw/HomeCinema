@@ -80,7 +80,7 @@ export type Check = { id: string; name: string; ok: boolean; warn: boolean; deta
 export type Library = { id: number; path: string; kind: string; online: boolean };
 export type Settings = {
   metaLang: string; uiLang: string; hwaccel: string; quality: string; maxStreams: string; tonemap: string; externalPlayer: string;
-  useExternal: string; setupDone: string; subLang: string; autoNext: string; tmdbKeySet: boolean; tmdbKeyTail?: string; tmdbApi: string; tmdbImg: string; metaProvider: 'kinopoisk' | 'tmdb'; kpKeySet: boolean; kpKeyTail?: string; passwordSet: boolean;
+  useExternal: string; setupDone: string; subLang: string; autoNext: string; tmdbKeySet: boolean; tmdbKeyTail?: string; tmdbApi: string; tmdbImg: string; tmdbVia: 'cub' | 'direct' | 'custom'; passwordSet: boolean;
   hw: { ffmpegFound: boolean; version: string; encoders: string[] | null; zscale: boolean }; encoder: string;
 };
 

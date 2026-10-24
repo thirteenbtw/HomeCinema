@@ -9,48 +9,43 @@ import { Modal } from '../components/CastDialog';
 import { ProfilesEditor } from './Profiles';
 
 const sections = [
-  ['look', 'Оформление', 'Appearance'], ['lib', 'Библиотека и метаданные', 'Library & metadata'], ['play', 'Воспроизведение', 'Playback'],
+  ['look', 'Оформление', 'Appearance'], ['lib', 'Библиотека и TMDB', 'Library & TMDB'], ['play', 'Воспроизведение', 'Playback'],
   ['torrents', 'Торренты и VPN', 'Torrents & VPN'], ['access', 'Доступ и язык', 'Access & language'], ['prof', 'Профили и копии', 'Profiles & backup'], ['diag', 'Диагностика', 'Diagnostics'],
 ] as const;
 
-// Public TMDB mirror used by Lampa, for networks where TMDB is blocked.
-const cubMirror = { tmdbApi: 'https://apitmdb.cub.red/3', tmdbImg: 'https://imagetmdb.cub.red/t/p' };
-
-// TmdbAccess picks how the server reaches TMDB: directly (with the built-in
-// DNS-over-HTTPS fallback) or through a mirror.
+// TmdbAccess picks how the server reaches TMDB: through CUB (the mirror
+// Lampa uses, falling back to TMDB itself), directly, or via a custom mirror.
 function TmdbAccess({ st, save }: { st: S; save: (p: Partial<Record<keyof S, string>>) => Promise<S> }) {
-  const mode = !st.tmdbApi && !st.tmdbImg ? 'direct' : st.tmdbApi === cubMirror.tmdbApi && st.tmdbImg === cubMirror.tmdbImg ? 'cub' : 'custom';
-  const [sel, setSel] = useState(mode);
+  const [sel, setSel] = useState(st.tmdbVia || 'cub');
   const [apiUrl, setApiUrl] = useState(st.tmdbApi || '');
   const [imgUrl, setImgUrl] = useState(st.tmdbImg || '');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const apply = async (v: { tmdbApi: string; tmdbImg: string }) => {
+  const apply = async (v: Partial<Record<keyof S, string>>) => {
     setBusy(true); setMsg(null);
     try {
       await save(v);
       setMsg({ ok: true, text: st.tmdbKeySet ? tr('TMDB отвечает', 'TMDB responds') : tr('Сохранено', 'Saved') });
-    } catch (e: any) { setMsg({ ok: false, text: e.message }); } finally { setBusy(false); }
+    } catch (e: any) { setMsg({ ok: false, text: e.message }); setSel(st.tmdbVia || 'cub'); } finally { setBusy(false); }
   };
   const pick = (v: string) => {
-    setSel(v);
-    if (v === 'direct') apply({ tmdbApi: '', tmdbImg: '' });
-    if (v === 'cub') apply(cubMirror);
+    setSel(v as S['tmdbVia']);
+    if (v !== 'custom') apply({ tmdbVia: v });
   };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div className="row">
-        <label className="fld" style={{ flex: '0 1 320px' }}>{tr('Подключение к TMDB', 'Connecting to TMDB')}
+        <label className="fld" style={{ flex: '0 1 340px' }}>{tr('Подключение к TMDB', 'Connecting to TMDB')}
           <select className="sel" value={sel} onChange={(e) => pick(e.target.value)} disabled={busy}>
-            <option value="direct">{tr('Напрямую (с обходом DNS-блокировки)', 'Direct (with DNS block bypass)')}</option>
-            <option value="cub">{tr('Через зеркало CUB (как в Lampa)', 'Via the CUB mirror (as in Lampa)')}</option>
+            <option value="cub">{tr('Через CUB, как в Lampa (работает без VPN)', 'Via CUB, as in Lampa (no VPN needed)')}</option>
+            <option value="direct">{tr('Напрямую', 'Direct')}</option>
             <option value="custom">{tr('Своё зеркало…', 'Custom mirror…')}</option>
           </select>
         </label>
         {busy && <span className="spin" />}
       </div>
       {sel === 'custom' && (
-        <form className="row" onSubmit={(e) => { e.preventDefault(); apply({ tmdbApi: apiUrl.trim(), tmdbImg: imgUrl.trim() }); }}>
+        <form className="row" onSubmit={(e) => { e.preventDefault(); apply({ tmdbVia: 'custom', tmdbApi: apiUrl.trim(), tmdbImg: imgUrl.trim() }); }}>
           <label className="fld" style={{ flex: '1 1 240px' }}>{tr('Адрес API', 'API address')}
             <input className="inp mono" style={{ fontSize: 12 }} value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} placeholder="https://…/3" />
           </label>
@@ -73,7 +68,7 @@ export default function SettingsPage() {
     const id = loc.hash.slice(1);
     if (id) { setCur(id); setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50); }
   }, [loc.hash]);
-  const save = async (patch: Partial<Record<keyof S | 'tmdbKey' | 'kpKey' | 'password', string>>) => {
+  const save = async (patch: Partial<Record<keyof S | 'tmdbKey' | 'password', string>>) => {
     const next = await api.put<S>('/api/settings', patch);
     setSt(next);
     return next;
@@ -186,7 +181,6 @@ function LibrarySection({ st, save }: { st: S | null; save: (p: any) => Promise<
   const [kind, setKind] = useState('auto');
   const [key, setKey] = useState('');
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const kp = st?.metaProvider !== 'tmdb';
   const [busy, setBusy] = useState(false);
   const s = scan || data?.scan;
   const add = async (path: string) => {
@@ -196,7 +190,7 @@ function LibrarySection({ st, save }: { st: S | null; save: (p: any) => Promise<
   const del = async (l: Library) => { await api.del(`/api/libraries/${l.id}`); reload(); };
   const saveKey = async () => {
     setBusy(true); setMsg(null);
-    try { await save(kp ? { kpKey: key.trim() } : { tmdbKey: key.trim() }); setKey(''); setMsg({ ok: true, text: tr('Ключ подошёл — загружаем постеры и описания', 'Key works — fetching posters and descriptions') }); } catch (e: any) { setMsg({ ok: false, text: e.message }); } finally { setBusy(false); }
+    try { await save({ tmdbKey: key.trim() }); setKey(''); setMsg({ ok: true, text: tr('Ключ подошёл — загружаем постеры и описания', 'Key works — fetching posters and descriptions') }); } catch (e: any) { setMsg({ ok: false, text: e.message }); } finally { setBusy(false); }
   };
   return (
     <Card id="lib" title={tr('Папки библиотеки', 'Library folders')}
@@ -232,33 +226,17 @@ function LibrarySection({ st, save }: { st: S | null; save: (p: any) => Promise<
             <option value="uk-UA">Українська, затем English</option>
           </select>
         </label>
-        <label className="fld" style={{ flex: '0 1 240px' }}>{tr('Источник данных', 'Metadata source')}
-          <select className="sel" value={st?.metaProvider || 'kinopoisk'} onChange={(e) => { setMsg(null); save({ metaProvider: e.target.value }).catch((er) => setMsg({ ok: false, text: er.message })); }}>
-            <option value="kinopoisk">{tr('Кинопоиск (работает без VPN)', 'Kinopoisk (no VPN needed)')}</option>
-            <option value="tmdb">TMDB</option>
-          </select>
-        </label>
-        {kp ? (
-          <form className="fld" style={{ flex: '1 1 260px' }} onSubmit={(e) => { e.preventDefault(); if (key.trim()) saveKey(); }}>
-            <label htmlFor="key">{tr('Ключ API Кинопоиска', 'Kinopoisk API key')} {st?.kpKeySet ? <span style={{ color: 'var(--ok-fg)' }}>· {tr('задан', 'set')} ••••{st.kpKeyTail}</span> : <a href="https://kinopoiskapiunofficial.tech/signup" target="_blank" rel="noreferrer">· {tr('получить бесплатно', 'get one free')}</a>}</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input id="key" className="inp mono" style={{ flex: 1, fontSize: 12 }} value={key} onChange={(e) => setKey(e.target.value)} placeholder={st?.kpKeySet ? '••••••••••••' + (st.kpKeyTail || '') : 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'} autoComplete="off" />
-              <button className="btn btn-d sm" disabled={busy || !key.trim()}>{busy ? <span className="spin" /> : tr('Проверить', 'Verify')}</button>
-            </div>
-          </form>
-        ) : (
-          <form className="fld" style={{ flex: '1 1 260px' }} onSubmit={(e) => { e.preventDefault(); if (key.trim()) saveKey(); }}>
-            <label htmlFor="key">{tr('Ключ TMDB', 'TMDB key')} {st?.tmdbKeySet ? <span style={{ color: 'var(--ok-fg)' }}>· {tr('задан', 'set')} ••••{st.tmdbKeyTail}</span> : <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer">· {tr('получить бесплатно', 'get one free')}</a>}</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input id="key" className="inp mono" style={{ flex: 1, fontSize: 12 }} value={key} onChange={(e) => setKey(e.target.value)} placeholder={st?.tmdbKeySet ? '••••••••••••' + (st.tmdbKeyTail || '') : 'API key v3 / токен v4'} autoComplete="off" />
-              <button className="btn btn-d sm" disabled={busy || !key.trim()}>{busy ? <span className="spin" /> : tr('Проверить', 'Verify')}</button>
-            </div>
-          </form>
-        )}
+        <form className="fld" style={{ flex: '1 1 260px' }} onSubmit={(e) => { e.preventDefault(); if (key.trim()) saveKey(); }}>
+          <label htmlFor="key">{tr('Ключ TMDB', 'TMDB key')} {st?.tmdbKeySet ? <span style={{ color: 'var(--ok-fg)' }}>· {tr('задан', 'set')} ••••{st.tmdbKeyTail}</span> : <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer">· {tr('получить бесплатно', 'get one free')}</a>}</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input id="key" className="inp mono" style={{ flex: 1, fontSize: 12 }} value={key} onChange={(e) => setKey(e.target.value)} placeholder={st?.tmdbKeySet ? '••••••••••••' + (st.tmdbKeyTail || '') : 'API key v3 / токен v4'} autoComplete="off" />
+            <button className="btn btn-d sm" disabled={busy || !key.trim()}>{busy ? <span className="spin" /> : tr('Проверить', 'Verify')}</button>
+          </div>
+        </form>
       </div>
       {msg && <div className={msg.ok ? 'ok' : 'err'}>{msg.text}</div>}
-      {st && !kp && <TmdbAccess st={st} save={save} />}
-      <div className="sub">{tr(`В ${kp ? 'Кинопоиск' : 'TMDB'} уходят только названия и годы для поиска. Файлы и история просмотра остаются на ПК.${kp ? ' У бесплатного ключа есть дневной лимит запросов, поэтому ответы кэшируются.' : ''}`, `Only titles and years are sent to ${kp ? 'Kinopoisk' : 'TMDB'}. Files and history stay on this PC.`)}</div>
+      {st && <TmdbAccess st={st} save={save} />}
+      <div className="sub">{tr('В TMDB уходят только названия и годы для поиска. Файлы и история просмотра остаются на ПК.', 'Only titles and years are sent to TMDB. Files and history stay on this PC.')}</div>
       {picker && <FolderPicker title={tr('Папка библиотеки', 'Library folder')} onPick={add} onClose={() => setPicker(false)} />}
     </Card>
   );

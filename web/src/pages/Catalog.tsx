@@ -10,12 +10,20 @@ import { Section } from '../components/Shell';
 type Kind = 'movie' | 'tv';
 type Genre = { id: number; name: string };
 
-type Lists = { provider: string; lists: { key: string; title: string }[] };
+const rows: Record<Kind, [string, string, string][]> = {
+  movie: [
+    ['trending', 'Тренды недели', 'Trending this week'], ['now_playing', 'Сейчас в кино', 'In theaters'],
+    ['popular', 'Популярные', 'Popular'], ['top_rated', 'Лучшие за всё время', 'Top rated'], ['upcoming', 'Скоро', 'Upcoming'],
+  ],
+  tv: [
+    ['trending', 'Тренды недели', 'Trending this week'], ['on_the_air', 'Сейчас выходят', 'On the air'],
+    ['popular', 'Популярные', 'Popular'], ['top_rated', 'Лучшие за всё время', 'Top rated'],
+  ],
+};
 
 const sorts: [string, string, string][] = [['', 'Популярные', 'Popular'], ['rating', 'По рейтингу', 'Top rated'], ['date', 'Новинки', 'Newest']];
 
-// Catalog: everything the metadata provider (Kinopoisk or TMDB) knows, not
-// only the local library. A title opens a page
+// Catalog: all of TMDB, not only the local library. A title opens a page
 // where it can be streamed or downloaded from the user's own indexers.
 export default function Catalog() {
   const [params, setParams] = useSearchParams();
@@ -27,7 +35,6 @@ export default function Catalog() {
   const [text, setText] = useState(q);
   useEffect(() => setText(q), [q]);
   const genres = useAsync(() => api.get<Genre[]>(`/api/catalog/genres?kind=${kind}`), [kind]);
-  const lists = useAsync(() => api.get<Lists>(`/api/catalog/lists?kind=${kind}`), [kind]);
 
   const set = (patch: Record<string, string | number>) => {
     const n = new URLSearchParams(params);
@@ -35,10 +42,10 @@ export default function Catalog() {
     setParams(n);
   };
 
-  const row = lists.data?.lists.find((r) => r.key === list);
+  const row = rows[kind].find((r) => r[0] === list);
   const grid = q ? { path: `/api/catalog/search${qs({ q })}`, title: `${tr('Поиск', 'Search')}: «${q}»` }
     : genre || sort ? { path: `/api/catalog${qs({ kind, genre, sort })}`, title: genres.data?.find((g) => g.id === genre)?.name || tr('Все', 'All') }
-      : list ? { path: `/api/catalog${qs({ kind, list })}`, title: row ? row.title : t('catalog') }
+      : list ? { path: `/api/catalog${qs({ kind, list })}`, title: row ? tr(row[1], row[2]) : t('catalog') }
         : null;
 
   return (
@@ -46,7 +53,7 @@ export default function Catalog() {
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 16 }}>
         <div>
           <h1 className="h1">{t('catalog')}</h1>
-          <div className="sub">{tr(`Все фильмы и сериалы ${lists.data?.provider || ''} — смотрите сразу во время загрузки или скачивайте в библиотеку`, `Every movie and show on ${lists.data?.provider || ''} — watch while it downloads or save it to the library`)}</div>
+          <div className="sub">{tr('Все фильмы и сериалы TMDB — смотрите сразу во время загрузки или скачивайте в библиотеку', 'Every movie and show on TMDB — watch while it downloads or save it to the library')}</div>
         </div>
         <form role="search" className="glass" onSubmit={(e) => { e.preventDefault(); set({ q: text.trim(), list: '', genre: '', sort: '' }); }}
           style={{ marginLeft: 'auto', flex: '0 1 360px', display: 'flex', alignItems: 'center', gap: 10, height: 44, padding: '0 16px', borderRadius: 999, border: '1px solid var(--line)', color: 'var(--mut)' }}>
@@ -83,11 +90,11 @@ export default function Catalog() {
       )}
 
       {genres.error && <CatalogError msg={genres.error} />}
-      {!genres.error && (grid ? <Grid key={grid.path} path={grid.path} title={grid.title} /> : (lists.data?.lists || []).map((l) => (
-        <Row key={kind + l.key} path={`/api/catalog${qs({ kind, list: l.key })}`} title={l.title} more={`/catalog${qs({ kind: kind === 'tv' ? 'tv' : '', list: l.key })}`} />
+      {!genres.error && (grid ? <Grid key={grid.path} path={grid.path} title={grid.title} /> : rows[kind].map(([l, r, e]) => (
+        <Row key={kind + l} path={`/api/catalog${qs({ kind, list: l })}`} title={tr(r, e)} more={`/catalog${qs({ kind: kind === 'tv' ? 'tv' : '', list: l })}`} />
       )))}
 
-      <p style={{ margin: 0, fontSize: 12, color: 'var(--mut)' }}>{tr(`Данные и постеры — ${lists.data?.provider || ''}. Раздачи ищутся только в ваших источниках Torznab (Jackett / Prowlarr).`, `Data and posters from ${lists.data?.provider || ''}. Releases are searched only on your own Torznab sources (Jackett / Prowlarr).`)}</p>
+      <p style={{ margin: 0, fontSize: 12, color: 'var(--mut)' }}>{tr('Данные и постеры — TMDB. Раздачи ищутся только в ваших источниках Torznab (Jackett / Prowlarr).', 'Data and posters from TMDB. Releases are searched only on your own Torznab sources (Jackett / Prowlarr).')}</p>
     </main>
   );
 }
@@ -96,7 +103,7 @@ function CatalogError({ msg }: { msg: string }) {
   return (
     <div className="empty">
       {msg}
-      {/TMDB|Кинопоиск|ключ/.test(msg) && <Link className="btn btn-l sm" to="/settings">{tr('Открыть настройки', 'Open settings')}</Link>}
+      {msg.includes('TMDB') && <Link className="btn btn-l sm" to="/settings">{tr('Открыть настройки', 'Open settings')}</Link>}
     </div>
   );
 }
