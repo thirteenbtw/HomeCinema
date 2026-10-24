@@ -121,10 +121,10 @@ function Detail({ d }: { d: TitleResp }) {
         <div style={{ flex: '999 1 480px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 28 }}>
           <p style={{ margin: 0, fontSize: 14, lineHeight: 1.65, color: 'var(--fg2)', maxWidth: 760 }}>{x.overview || tr('Описания нет.', 'No description.')}</p>
 
-          <Section title={tr('Раздачи', 'Releases')} note={tr('Из ваших источников Torznab · «Смотреть» начинает показ, пока файл качается', 'From your Torznab sources · “Watch” starts playback while the file downloads')}>
+          <Section title={tr('Раздачи', 'Releases')} note={tr('Из источников поиска · «Смотреть» начинает показ, пока файл качается', 'From your search sources · “Watch” starts playback while the file downloads')}>
             {!d.indexers ? (
               <div className="empty">
-                {tr('Чтобы смотреть и скачивать из каталога, добавьте свой источник Torznab — например Jackett.', 'To watch or download from the catalog, add your own Torznab source such as Jackett.')}
+                {tr('Чтобы смотреть и скачивать из каталога, включите источник поиска — JacRed или свой Jackett.', 'To watch or download from the catalog, enable a search source: JacRed or your own Jackett.')}
                 <Link className="btn btn-l sm" to="/settings#torrents">{tr('Добавить источник', 'Add a source')}</Link>
               </div>
             ) : (

@@ -28,7 +28,7 @@ function eta(sec: number) {
 }
 
 // Torrents (FR-T1..T12): add by magnet/.torrent, watch while downloading,
-// search the user's own Torznab indexers.
+// search the indexers from settings (JacRed or the user's own Torznab).
 export default function Torrents() {
   const { torrents: ov, openCast, toast } = useApp();
   const nav = useNavigate();
@@ -197,7 +197,7 @@ export default function Torrents() {
       </div>
 
       <p className="glass" style={{ margin: 0, padding: '12px 16px', borderRadius: 12, border: '1px solid var(--line)', fontSize: 12, color: 'var(--mut2)' }}>
-        {tr('Ответственность за законность загружаемого и раздаваемого контента лежит на пользователе. Источники поиска (Torznab / Jackett / Prowlarr) добавляете вы сами — в комплекте их нет.', 'You are responsible for the legality of content you download and share. Search sources (Torznab / Jackett / Prowlarr) are added by you; none are bundled.')}
+        {tr('Ответственность за законность загружаемого и раздаваемого контента лежит на пользователе. Источники поиска (JacRed, Jackett, Prowlarr) выбираете вы в настройках.', 'You are responsible for the legality of content you download and share. You choose the search sources (JacRed, Jackett, Prowlarr) in settings.')}
       </p>
 
       {risk && (

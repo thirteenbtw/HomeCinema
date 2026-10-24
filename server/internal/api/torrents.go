@@ -212,7 +212,7 @@ func (s *Server) searchTorrents(w http.ResponseWriter, r *http.Request) error {
 		return badRequest("пустой запрос")
 	}
 	if len(s.Torrents.Indexers()) == 0 {
-		return badRequest("добавьте свои источники Torznab (Jackett / Prowlarr) в настройках")
+		return badRequest("включите источник поиска (JacRed или свой Torznab) в настройках")
 	}
 	res, errs := s.Torrents.Search(r.Context(), q)
 	return writeJSON(w, map[string]any{"results": res, "errors": errs})
