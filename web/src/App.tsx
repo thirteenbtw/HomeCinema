@@ -9,6 +9,7 @@ import CatalogTitlePage from './pages/CatalogTitle';
 import PersonPage, { PeoplePage, PersonFind } from './pages/Person';
 import Player from './pages/Player';
 import Torrents from './pages/Torrents';
+import Lists from './pages/Lists';
 import Devices from './pages/Devices';
 import Settings from './pages/Settings';
 import ProfilesPage from './pages/Profiles';
@@ -35,6 +36,7 @@ function Gate() {
         <Route path="show/:id" element={<ShowPage />} />
         <Route path="play/torrent/:hash" element={<Player />} />
         <Route path="play/:fileId" element={<Player />} />
+        <Route path="lists" element={<Lists />} />
         <Route path="torrents" element={<Torrents />} />
         <Route path="devices" element={<Devices />} />
         <Route path="settings" element={<Settings />} />

@@ -8,6 +8,7 @@ import { Dots } from './Dots';
 import { PreviewLayer } from './Preview';
 import { installDragScroll } from './dragScroll';
 import { installTorrentDrop } from './torrentDrop';
+import { loadMarks } from '../marks';
 
 // Pages tint the ambient background (e.g. with the featured poster's colors).
 const AmbientCtx = createContext<(colors: string[] | null) => void>(() => {});
@@ -26,6 +27,7 @@ export function Shell() {
   useEffect(() => installDragScroll(), []);
   useEffect(() => installTorrentDrop(() => nav('/torrents')), [nav]);
   useEffect(() => { window.scrollTo(0, 0); }, [loc.pathname]);
+  useEffect(() => { loadMarks(); }, [profile?.id]);
 
   const c = (prefs.posterTint && colors) || ['var(--acc)', 'var(--acc)'];
   const active = torrents?.items.filter((x) => ['downloading', 'streaming', 'meta'].includes(x.status)).length || 0;
@@ -52,8 +54,7 @@ export function Shell() {
           <div aria-hidden="true" className="nav-extra" style={{ width: 24, height: 1, background: 'var(--line)', margin: '8px 0' }} />
           <Nav to="/torrents" icon="download" label={active ? `${t('torrents')}, ${active} ${tr('активных', 'active')}` : t('torrents')} dot={active > 0} />
           <Nav to="/devices" icon="cast" label={t('devices')} />
-          <Nav to="/library/favorites" icon="heart" label={t('favorites')} extra />
-          <Nav to="/library/later" icon="clock" label={t('later')} extra />
+          <Nav to="/lists" icon="heart" label={tr('Мои списки', 'My lists')} extra />
           <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }} className="nav-bottom">
             <button className="ri nav-extra" onClick={() => setPrefs({ theme: themeOrder[(themeOrder.indexOf(theme) + 1) % 3] })}
               aria-label={`${t('theme')}: ${themeLabels[theme]}. ${tr('Переключить', 'Switch')}`} title={`${t('theme')}: ${themeLabels[theme]}`}>

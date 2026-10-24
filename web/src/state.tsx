@@ -70,6 +70,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           case 'devices': setDevices(m.data); break;
           case 'cast': setCast(m.data || []); break;
           case 'progress': setLastProgress(m.data); break;
+          case 'letterboxd': window.dispatchEvent(new CustomEvent('hc:letterboxd', { detail: m.data })); break;
         }
       } catch { /* ignore malformed event */ }
     };

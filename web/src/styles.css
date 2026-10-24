@@ -197,3 +197,10 @@ input[type=range].rng{accent-color:var(--acc)}
 .filmo-row:hover{background:var(--soft);opacity:1}
 .filmo-row img,.filmo-row .ph0{width:44px;aspect-ratio:2/3;border-radius:6px;object-fit:cover;background:var(--chip);display:block}
 @media (max-width:640px){.filmo-row{grid-template-columns:44px 40px minmax(0,1fr)}.filmo-row .fr{display:none}}
+/* list toggles on catalog posters: always shown when on, on hover otherwise */
+.card-marks{position:absolute;top:8px;right:8px;display:flex;gap:4px;z-index:1}
+.card-marks .cm{width:28px;height:28px;border-radius:50%;border:0;padding:0;display:grid;place-items:center;background:#000000A0;color:#FFFFFF;cursor:pointer;opacity:0;transition:opacity .15s}
+.card-marks .cm.on{opacity:1;background:var(--acc)}
+.card-marks .cm.seen{background:#2F9E62;cursor:default}
+.poster:hover .card-marks .cm,.poster:focus-visible .card-marks .cm,.card-marks .cm:focus-visible{opacity:1}
+@media (hover:none){.card-marks .cm{opacity:1}}
