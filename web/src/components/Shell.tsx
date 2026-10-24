@@ -30,6 +30,13 @@ export function Shell() {
   const c = (prefs.posterTint && colors) || ['var(--acc)', 'var(--acc)'];
   const active = torrents?.items.filter((x) => ['downloading', 'streaming', 'meta'].includes(x.status)).length || 0;
   const theme = prefs.theme;
+  // The page scrollbar belongs to <html>, so it needs the theme tokens too.
+  useEffect(() => {
+    const cl = document.documentElement.classList;
+    const add = [`th-${theme}`, `ac-${prefs.accent}`];
+    cl.add(...add);
+    return () => cl.remove(...add);
+  }, [theme, prefs.accent]);
 
   return (
     <AmbientCtx.Provider value={setColors}>
