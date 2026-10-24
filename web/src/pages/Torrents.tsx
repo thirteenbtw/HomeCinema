@@ -5,6 +5,7 @@ import { useApp } from '../state';
 import { tr } from '../i18n';
 import { Icon, PlayGlyph } from '../components/Icon';
 import { Modal } from '../components/CastDialog';
+import { takeDroppedTorrent } from '../components/torrentDrop';
 
 type Tab = 'active' | 'stream' | 'search' | 'done' | 'seeding';
 
@@ -80,11 +81,18 @@ export default function Torrents() {
 
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault(); setDrag(false);
-    const f = e.dataTransfer.files?.[0];
+    const files = Array.from(e.dataTransfer.files || []);
+    const f = files.find((x) => /\.torrent$/i.test(x.name));
     if (f) { add({ file: f }, 'download'); return; }
-    const text = e.dataTransfer.getData('text');
+    if (files.length) { setErr(tr('Это не .torrent-файл', 'Not a .torrent file')); return; }
+    const text = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text');
     if (text) setMagnet(text.trim());
   };
+  // A .torrent dropped on another page arrives here.
+  useEffect(() => {
+    const f = takeDroppedTorrent();
+    if (f) add({ file: f }, 'download');
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = items.filter((x) => {
     switch (tab) {

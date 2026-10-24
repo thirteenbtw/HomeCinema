@@ -1,10 +1,11 @@
 import { Component, createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '../state';
 import { t, tr } from '../i18n';
 import { Icon } from './Icon';
 import { CastDialog } from './CastDialog';
 import { installDragScroll } from './dragScroll';
+import { installTorrentDrop } from './torrentDrop';
 
 // Pages tint the ambient background (e.g. with the featured poster's colors).
 const AmbientCtx = createContext<(colors: string[] | null) => void>(() => {});
@@ -20,11 +21,13 @@ export function Shell() {
   const raf = useRef(0);
   const pending = useRef<{ x: number; y: number } | null>(null);
   const loc = useLocation();
+  const nav = useNavigate();
   const live = prefs.bg === 'live' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const bgOn = prefs.bg !== 'off';
 
   useEffect(() => () => cancelAnimationFrame(raf.current), []);
   useEffect(() => installDragScroll(), []);
+  useEffect(() => installTorrentDrop(() => nav('/torrents')), [nav]);
   useEffect(() => { window.scrollTo(0, 0); }, [loc.pathname]);
 
   const onMove = (e: React.MouseEvent) => {
