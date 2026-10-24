@@ -77,3 +77,25 @@ func TestIsJacRedSite(t *testing.T) {
 		}
 	}
 }
+
+func TestJacRedEmptyWaits(t *testing.T) {
+	empty := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(`{"Results":[]}`)) }))
+	defer empty.Close()
+	slow := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(200 * time.Millisecond)
+		w.Write([]byte(`{"Results":[{"Title":"A","MagnetUri":"magnet:?xt=urn:btih:a"}]}`))
+	}))
+	defer slow.Close()
+	oldURL, oldMirrors := JacRedURL, JacRedMirrors
+	defer func() { JacRedURL, JacRedMirrors = oldURL, oldMirrors }()
+	JacRedURL, JacRedMirrors = empty.URL, []string{slow.URL}
+	res, err := queryJacRed(context.Background(), http.DefaultClient, Indexer{Name: "JacRed", URL: empty.URL, Kind: KindJacRed}, "a")
+	if err != nil || len(res) != 1 {
+		t.Fatalf("%v %+v", err, res)
+	}
+	JacRedMirrors = nil
+	res, err = queryJacRed(context.Background(), http.DefaultClient, Indexer{Name: "JacRed", URL: empty.URL, Kind: KindJacRed}, "a")
+	if err != nil || len(res) != 0 {
+		t.Fatalf("%v %+v", err, res)
+	}
+}

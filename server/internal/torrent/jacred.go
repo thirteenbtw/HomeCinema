@@ -56,6 +56,7 @@ type jackettResults struct {
 
 // queryJacRed asks the instance and, for the default one, its mirrors all at
 // once: public instances come and go, and a dead one should cost nothing.
+// The first answer with releases wins.
 func queryJacRed(ctx context.Context, client *http.Client, in Indexer, query string) ([]Result, error) {
 	hosts := []string{in.URL}
 	if strings.TrimRight(in.URL, "/") == JacRedURL {
@@ -64,25 +65,36 @@ func queryJacRed(ctx context.Context, client *http.Client, in Indexer, query str
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	type answer struct {
-		res []Result
-		err error
+		host string
+		res  []Result
+		err  error
 	}
 	ch := make(chan answer, len(hosts))
 	for _, h := range hosts {
 		go func(h string) {
 			res, err := jacRedFrom(ctx, client, in, h, query)
-			ch <- answer{res, err}
+			ch <- answer{h, res, err}
 		}(h)
 	}
-	var fails []string
+	// An instance can answer quickly with nothing (an empty or outdated
+	// index), so an empty answer waits for the others.
+	var empty, fails []string
 	for range hosts {
 		a := <-ch
-		if a.err == nil {
+		switch {
+		case a.err == nil && len(a.res) > 0:
 			return a.res, nil
+		case a.err == nil:
+			u, _ := url.Parse(a.host)
+			empty = append(empty, u.Host+": ничего не нашёл")
+		default:
+			fails = append(fails, a.err.Error())
 		}
-		fails = append(fails, a.err.Error())
 	}
-	return nil, errors.New(strings.Join(fails, "; "))
+	if len(fails) == 0 {
+		return []Result{}, nil
+	}
+	return nil, errors.New(strings.Join(append(empty, fails...), "; "))
 }
 
 func jacRedFrom(ctx context.Context, client *http.Client, in Indexer, host, query string) ([]Result, error) {
