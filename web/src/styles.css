@@ -138,3 +138,20 @@ input[type=range].rng{accent-color:var(--acc)}
 .poster:hover .pimg{transform:translateY(-3px);box-shadow:0 14px 30px var(--sh)}
 .pimg{transition:transform .2s,box-shadow .2s}
 .grid-posters{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:20px 16px}
+/* genre tiles and the numbered top (home) */
+.gtile{position:relative;flex:0 0 172px;height:68px;border-radius:10px;overflow:hidden;border:0;padding:10px 12px;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;text-align:left;background:#17181C;color:#FFFFFF;cursor:pointer;font-family:inherit}
+.gtile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55;filter:grayscale(.3);transition:opacity .25s,transform .4s}
+.gtile::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,#000000B0,#00000040)}
+.gtile:hover img{opacity:.8;transform:scale(1.05)}
+.gtile-k,.gtile-n{position:relative;z-index:1}
+.gtile-k{font-size:calc(9px * var(--fs));font-weight:700;letter-spacing:.12em;color:#FF9AA0}
+.gtile-n{font-size:calc(20px * var(--fs));font-weight:600;line-height:1}
+.topnum{font-size:calc(104px * var(--fs));line-height:.78;font-weight:700;color:var(--bg);-webkit-text-stroke:2px var(--num);margin-right:-16px;position:relative;z-index:0}
+.topnum + *{position:relative;z-index:1}
+/* two-tone genre tiles on the search start */
+.grid-duo{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.duo{position:relative;aspect-ratio:3/4;border:0;padding:0;border-radius:12px;overflow:hidden;cursor:pointer;background:var(--duo);isolation:isolate;font-family:inherit}
+.duo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.15) brightness(1.05);mix-blend-mode:multiply;transition:transform .4s}
+.duo::after{content:'';position:absolute;inset:0;background:linear-gradient(transparent 55%,#00000099);z-index:1}
+.duo span{position:absolute;left:12px;bottom:12px;z-index:2;color:#FFFFFF;font-weight:700;font-size:calc(14px * var(--fs))}
+.duo:hover img{transform:scale(1.05)}

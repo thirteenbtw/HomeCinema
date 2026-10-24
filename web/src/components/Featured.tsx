@@ -46,7 +46,7 @@ export function Featured({ slides, label }: { slides: Slide[]; label: string }) 
 
   return (
     <section className="hero" aria-label={label} onMouseMove={onMove} onMouseLeave={() => setHover(false)}
-      style={{ position: 'relative', overflow: 'hidden', borderRadius: 20, background: sky, minHeight: 'clamp(340px, 34vw, 540px)', display: 'flex', alignItems: 'flex-end', transition: 'background .8s', boxShadow: '0 20px 50px var(--sh)', flex: 'none' }}>
+      style={{ position: 'relative', overflow: 'hidden', borderRadius: 20, background: sky, aspectRatio: '2.2 / 1', minHeight: 340, maxHeight: 'min(640px, calc(var(--vh) - 220px))', display: 'flex', alignItems: 'flex-end', transition: 'background .8s', boxShadow: '0 20px 50px var(--sh)', flex: 'none' }}>
       {s.backdrop ? (
         <Backdrop src={s.backdrop} />
       ) : (
