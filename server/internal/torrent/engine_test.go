@@ -80,6 +80,7 @@ func testMagnet(t *testing.T, downKBs int) {
 	ls.Port = 0
 	ls.DHT, ls.UPnP = false, false
 	ls.Trackers = ""
+	ls.AutoImport = false // the import goroutine would outlive the test's temp dir
 	ls.DownKBs = downKBs
 	ls.BindIface = loopbackIface(t)
 	b, _ := json.Marshal(ls)
@@ -112,7 +113,11 @@ func testMagnet(t *testing.T, downKBs int) {
 		}
 		if time.Now().After(deadline) {
 			got, _ := e.Get(hash)
-			t.Fatalf("download did not finish: %+v", got)
+			var st strings.Builder
+			e.mu.Lock()
+			e.items[hash].t.WriteStatus(&st)
+			e.mu.Unlock()
+			t.Fatalf("download did not finish: %+v\n%s", got, st.String())
 		}
 	}
 }
