@@ -31,7 +31,7 @@ func (e *Engine) SearchTitle(ctx context.Context, tq TitleQuery) (res []Result, 
 		wg.Add(1)
 		go func(q string) {
 			defer wg.Done()
-			r, es := e.Search(ctx, q)
+			r, es := e.search(ctx, q, &tq)
 			mu.Lock()
 			defer mu.Unlock()
 			all = append(all, r...)

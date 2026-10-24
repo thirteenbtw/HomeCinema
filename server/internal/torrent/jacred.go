@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -41,6 +42,18 @@ func isJacRedSite(in Indexer) bool {
 	return false
 }
 
+const browserUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+
+func nonEmpty(list []string) []string {
+	var out []string
+	for _, s := range list {
+		if s = strings.TrimSpace(s); s != "" {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
 type jackettResults struct {
 	Results []struct {
 		Tracker     string `json:"Tracker"`
@@ -57,7 +70,7 @@ type jackettResults struct {
 // queryJacRed asks the instance and, for the default one, its mirrors all at
 // once: public instances come and go, and a dead one should cost nothing.
 // The first answer with releases wins.
-func queryJacRed(ctx context.Context, client *http.Client, in Indexer, query string) ([]Result, error) {
+func queryJacRed(ctx context.Context, client *http.Client, in Indexer, query string, tq *TitleQuery) ([]Result, error) {
 	hosts := []string{in.URL}
 	if strings.TrimRight(in.URL, "/") == JacRedURL {
 		hosts = append(hosts, JacRedMirrors...)
@@ -72,7 +85,7 @@ func queryJacRed(ctx context.Context, client *http.Client, in Indexer, query str
 	ch := make(chan answer, len(hosts))
 	for _, h := range hosts {
 		go func(h string) {
-			res, err := jacRedFrom(ctx, client, in, h, query)
+			res, err := jacRedFrom(ctx, client, in, h, query, tq)
 			ch <- answer{h, res, err}
 		}(h)
 	}
@@ -97,19 +110,38 @@ func queryJacRed(ctx context.Context, client *http.Client, in Indexer, query str
 	return nil, errors.New(strings.Join(append(empty, fails...), "; "))
 }
 
-func jacRedFrom(ctx context.Context, client *http.Client, in Indexer, host, query string) ([]Result, error) {
+func jacRedFrom(ctx context.Context, client *http.Client, in Indexer, host, query string, tq *TitleQuery) ([]Result, error) {
 	u, err := url.Parse(strings.TrimRight(strings.TrimSpace(host), "/") + "/api/v2.0/indexers/all/results")
 	if err != nil || u.Host == "" {
 		return nil, fmt.Errorf("неверный адрес %q", host)
 	}
 	q := u.Query()
 	q.Set("apikey", in.APIKey)
+	if tq != nil {
+		// the way Lampa asks: the bare title plus the card's fields
+		if tq.Year > 0 {
+			query = strings.TrimSuffix(query, " "+strconv.Itoa(tq.Year))
+			q.Set("year", strconv.Itoa(tq.Year))
+		}
+		names := nonEmpty(tq.Names)
+		if len(names) > 0 {
+			q.Set("title", names[0])
+			q.Set("title_original", names[len(names)-1])
+		}
+		if tq.Show {
+			q.Set("is_serial", "2")
+		} else {
+			q.Set("is_serial", "1")
+		}
+	}
 	q.Set("Query", query)
 	u.RawQuery = q.Encode()
 	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 	req, _ := http.NewRequestWithContext(ctx, "GET", u.String(), nil)
 	req.Header.Set("Accept", "application/json")
+	// public instances sit behind bot filters that turn away Go's default agent
+	req.Header.Set("User-Agent", browserUA)
 	resp, err := client.Do(req)
 	if err != nil {
 		var ue *url.Error

@@ -104,6 +104,12 @@ func (e *Engine) Prefs() SearchPrefs {
 // Search queries all enabled indexers in parallel and ranks the results by the
 // preference profile; the top one is marked Best for one-click "watch now".
 func (e *Engine) Search(ctx context.Context, query string) ([]Result, []string) {
+	return e.search(ctx, query, nil)
+}
+
+// search takes the catalog title behind the query when there is one: JacRed
+// matches far better on separate title, original title and year.
+func (e *Engine) search(ctx context.Context, query string, tq *TitleQuery) ([]Result, []string) {
 	idx := e.Indexers()
 	prefs := e.Prefs()
 	var mu sync.Mutex
@@ -121,7 +127,7 @@ func (e *Engine) Search(ctx context.Context, query string) ([]Result, []string) 
 			var res []Result
 			var err error
 			if in.Kind == KindJacRed || isJacRedSite(in) {
-				res, err = queryJacRed(ctx, client, in, query)
+				res, err = queryJacRed(ctx, client, in, query, tq)
 			} else {
 				res, err = queryTorznab(ctx, client, in, query)
 			}
