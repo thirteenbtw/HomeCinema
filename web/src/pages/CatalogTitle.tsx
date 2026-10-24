@@ -48,6 +48,7 @@ function Detail({ d }: { d: TitleResp }) {
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [risk, setRisk] = useState<null | (() => void)>(null);
+  const [all, setAll] = useState(false);
   const [sky] = paletteFor(x.title);
   if (x.trailer) rememberTrailer({ kind: x.kind, id: x.id }, x.trailer);
 
@@ -66,6 +67,9 @@ function Detail({ d }: { d: TitleResp }) {
 
   const shown = useMemo(() => (res?.results || []).filter((r) => !quality || r.quality === quality), [res, quality]);
   const best = shown.find((r) => r.best) || (shown[0] && shown[0].seeds > 0 ? shown[0] : undefined);
+  // The first three releases, then the rest on demand; a new search or filter collapses the list again.
+  const rows = all ? shown.slice(0, 60) : shown.slice(0, 3);
+  useEffect(() => setAll(false), [res, quality]);
 
   const add = async (r: SearchResult, mode: Mode) => {
     setBusy(r.link + mode);
@@ -159,7 +163,7 @@ function Detail({ d }: { d: TitleResp }) {
                     <table style={{ width: '100%', minWidth: 680, borderCollapse: 'collapse' }}>
                       <thead><tr><th className="th">{tr('Раздача', 'Release')}</th><th className="th">{tr('Качество', 'Quality')}</th><th className="th">{tr('Размер', 'Size')}</th><th className="th">{tr('Сиды', 'Seeds')}</th><th className="th"><span className="sr">{tr('Действия', 'Actions')}</span></th></tr></thead>
                       <tbody>
-                        {shown.slice(0, 60).map((r) => (
+                        {rows.map((r) => (
                           <tr key={r.link + r.title} style={{ background: r === best ? 'var(--soft)' : undefined }}>
                             <td className="td" style={{ maxWidth: 420 }}>
                               <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.title}>{r === best && <span className="tag" style={{ background: 'var(--acc)', color: '#FFFFFF', marginRight: 6 }}>{tr('Лучшее', 'Best')}</span>}{r.title}</div>
@@ -177,6 +181,9 @@ function Detail({ d }: { d: TitleResp }) {
                       </tbody>
                     </table>
                   </div>
+                )}
+                {!loading && rows.length < Math.min(shown.length, 60) && (
+                  <button className="btn btn-l sm" style={{ alignSelf: 'flex-start' }} onClick={() => setAll(true)}>{tr('Ещё', 'More')} ({Math.min(shown.length, 60) - rows.length})</button>
                 )}
               </>
             )}
