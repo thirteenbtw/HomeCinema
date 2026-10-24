@@ -160,6 +160,7 @@ func (s *Server) routes(mux *http.ServeMux) {
 	h("GET /api/torrents/{hash}/stream", s.torrentStream)
 	h("GET /api/torrents/{hash}/play", s.torrentPlay)
 	mux.HandleFunc("GET /api/torrents/{hash}/files/{idx}", s.torrentFile)
+	mux.HandleFunc("GET /api/torrents/{hash}/files/{idx}/subs/{n}", s.torrentSubtitle)
 	h("GET /api/indexers", s.getIndexers)
 	h("PUT /api/indexers", s.putIndexers)
 	h("GET /api/torrent-settings", s.getTorrentSettings)

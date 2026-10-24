@@ -129,17 +129,51 @@ export default function Player() {
   useEffect(() => () => { hlsRef.current?.destroy(); }, []);
   useEffect(() => () => { if (pb?.session) api.del(`/api/hls/${pb.session}`).catch(() => {}); }, [pb?.session]);
 
-  // Subtitles: fetched in movie time (no server offset), shown by our own renderer.
+  // Subtitles, in movie time, shown by our own renderer. The server pulls the
+  // track out from the player's position on and hands over cues as it reads
+  // through the file (a 4K file or a downloading torrent takes minutes to
+  // read in full), so they are polled until done. Cues of a track are kept
+  // across seeks; a seek outside what was extracted starts from there.
+  const subUrl = pb?.subs.find((s) => s.index === subIdx)?.url?.split('?')[0] || '';
+  const subRanges = useRef<{ from: number; end: number; done: boolean }[]>([]);
+  const [subFrom, setSubFrom] = useState<number | null>(null);
   useEffect(() => {
     setCues([]);
-    const t = pb?.subs.find((s) => s.index === subIdx);
-    if (!t?.url || opts.current.burn) return;
-    let gone = false;
-    fetch(t.url.split('?')[0]).then((r) => (r.ok ? r.text() : Promise.reject(r.statusText)))
-      .then((txt) => { if (!gone) setCues(parseVTT(txt)); })
-      .catch(() => toast(tr('Не удалось загрузить субтитры', 'Could not load subtitles')));
-    return () => { gone = true; };
-  }, [pb, subIdx, toast]);
+    subRanges.current = [];
+    setSubFrom(subUrl && !opts.current.burn ? Math.max(0, Math.floor((video.current?.currentTime || 0) + offset - 10)) : null);
+  }, [subUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (subFrom === null || !subUrl || subRanges.current.some((r) => subFrom >= r.from - 1 && subFrom <= (r.done ? Infinity : r.end + 60))) return;
+    const range = { from: subFrom, end: subFrom, done: false };
+    subRanges.current.push(range);
+    let gone = false, timer = 0, fails = 0;
+    const poll = () => fetch(`${subUrl}?from=${subFrom}`).then(async (r) => {
+      if (!r.ok) throw new Error(await r.text());
+      const got = parseVTT(await r.text());
+      if (gone) return;
+      range.done = r.headers.get('X-Subs-Done') !== '0';
+      if (got.length) {
+        range.end = Math.max(range.end, got[got.length - 1].end);
+        setCues((old) => {
+          const seen = new Set(old.map((c) => `${c.start}|${c.text}`));
+          const add = got.filter((c) => !seen.has(`${c.start}|${c.text}`));
+          return add.length ? [...old, ...add].sort((x, y) => x.start - y.start) : old;
+        });
+      }
+      if (!range.done) timer = window.setTimeout(poll, 3000);
+    }).catch(() => {
+      if (gone) return;
+      if (++fails < 3) { timer = window.setTimeout(poll, 3000); return; }
+      range.done = true;
+      toast(tr('Не удалось загрузить субтитры', 'Could not load subtitles'));
+    });
+    poll();
+    return () => { gone = true; clearTimeout(timer); if (!range.done) subRanges.current = subRanges.current.filter((r) => r !== range); };
+  }, [subFrom, subUrl, toast]);
+  useEffect(() => {
+    if (subFrom === null || subRanges.current.some((r) => cur >= r.from - 1 && cur <= (r.done ? Infinity : r.end + 60))) return;
+    setSubFrom(Math.max(0, Math.floor(cur - 10)));
+  }, [cur, subFrom]);
 
   // Next episode and autoplay preference.
   useEffect(() => {
