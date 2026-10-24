@@ -94,7 +94,7 @@ export default function Catalog() {
         <Row key={kind + l} path={`/api/catalog${qs({ kind, list: l })}`} title={tr(r, e)} more={`/catalog${qs({ kind: kind === 'tv' ? 'tv' : '', list: l })}`} />
       )))}
 
-      <p style={{ margin: 0, fontSize: 'calc(12px * var(--fs))', color: 'var(--mut)' }}>{tr('Данные и постеры — TMDB. Раздачи ищутся только в ваших источниках Torznab (Jackett / Prowlarr).', 'Data and posters from TMDB. Releases are searched only on your own Torznab sources (Jackett / Prowlarr).')}</p>
+      <p style={{ margin: 0, fontSize: 'calc(12px * var(--fs))', color: 'var(--mut)' }}>{tr('Данные и постеры — TMDB. Раздачи ищутся в источниках из настроек: JacRed или ваш Jackett / Prowlarr.', 'Data and posters from TMDB. Releases are searched on the sources in settings: JacRed or your own Jackett / Prowlarr.')}</p>
     </main>
   );
 }

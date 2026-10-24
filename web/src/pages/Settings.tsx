@@ -418,14 +418,15 @@ function Indexers({ data, reload }: { data: { indexers: Indexer[] | null; prefs:
   const upd = (i: number, p: Partial<Indexer>) => setList(list.map((x, j) => (j === i ? { ...x, ...p } : x)));
   return (
     <>
-      <h3 className="h2" style={{ fontSize: 'calc(14px * var(--fs))', marginTop: 4 }}>{tr('Источники поиска (Torznab)', 'Search sources (Torznab)')}</h3>
-      <div className="sub">{tr('Jackett или Prowlarr, которые вы настроили сами. В приложении нет встроенных трекеров.', 'Jackett or Prowlarr you set up yourself. No trackers are bundled.')}</div>
+      <h3 className="h2" style={{ fontSize: 'calc(14px * var(--fs))', marginTop: 4 }}>{tr('Источники поиска', 'Search sources')}</h3>
+      <div className="sub">{tr('JacRed — публичный парсер русских трекеров, как в Lampa: работает сразу, без Jackett и аккаунтов. Свои Jackett или Prowlarr добавляются как Torznab.', 'JacRed is a public parser of Russian trackers, as in Lampa: works right away, no Jackett or accounts. Your own Jackett or Prowlarr are added as Torznab.')}</div>
       {list.map((x, i) => (
         <div key={i} className="row" style={{ padding: 10, borderRadius: 12, background: 'var(--bg2)' }}>
           <input type="checkbox" checked={x.on} onChange={(e) => upd(i, { on: e.target.checked })} aria-label={tr('Включён', 'Enabled')} style={{ width: 18, height: 18, accentColor: 'var(--acc)' }} />
           <input className="inp" style={{ flex: '0 1 140px' }} value={x.name} onChange={(e) => upd(i, { name: e.target.value })} placeholder={tr('Название', 'Name')} aria-label={tr('Название', 'Name')} />
           <input className="inp mono" style={{ flex: '1 1 260px', fontSize: 'calc(12px * var(--fs))' }} value={x.url} onChange={(e) => upd(i, { url: e.target.value })} placeholder="http://127.0.0.1:9117/api/v2.0/indexers/all/results/torznab/" aria-label="URL" />
-          <input className="inp mono" style={{ flex: '0 1 160px', fontSize: 'calc(12px * var(--fs))' }} value={x.apiKey} onChange={(e) => upd(i, { apiKey: e.target.value })} placeholder="API key" aria-label="API key" />
+          <span className="tag" style={{ flex: 'none' }}>{x.kind === 'jacred' ? 'JacRed' : 'Torznab'}</span>
+          <input className="inp mono" style={{ flex: '0 1 160px', fontSize: 'calc(12px * var(--fs))' }} value={x.apiKey} onChange={(e) => upd(i, { apiKey: e.target.value })} placeholder={x.kind === 'jacred' ? tr('ключ, если нужен', 'key, if needed') : 'API key'} aria-label="API key" />
           <button className="ri" style={{ width: 36, height: 36 }} aria-label={tr('Удалить', 'Remove')} onClick={() => setList(list.filter((_, j) => j !== i))}><Icon name="trash" size={16} /></button>
         </div>
       ))}
@@ -442,7 +443,8 @@ function Indexers({ data, reload }: { data: { indexers: Indexer[] | null; prefs:
         </div>
       )}
       <div className="row">
-        <button className="btn btn-l sm" onClick={() => setList([...list, { name: 'Jackett', url: '', apiKey: '', on: true }])}><Icon name="plus" size={16} />{tr('Добавить источник', 'Add source')}</button>
+        <button className="btn btn-l sm" onClick={() => setList([...list, { name: 'Jackett', url: '', apiKey: '', on: true }])}><Icon name="plus" size={16} />{tr('Добавить Torznab', 'Add Torznab')}</button>
+        {!list.some((x) => x.kind === 'jacred') && <button className="btn btn-l sm" onClick={() => setList([...list, { name: 'JacRed', url: 'https://jac.red', apiKey: '', on: true, kind: 'jacred' }])}><Icon name="plus" size={16} />{tr('Добавить JacRed', 'Add JacRed')}</button>}
         <button className="btn btn-d sm" onClick={save}>{tr('Сохранить источники', 'Save sources')}</button>
       </div>
     </>
