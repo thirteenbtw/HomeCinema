@@ -31,7 +31,7 @@ func (e *Engine) SearchTitle(ctx context.Context, tq TitleQuery) (res []Result, 
 		wg.Add(1)
 		go func(q string) {
 			defer wg.Done()
-			r, es := e.Search(ctx, q)
+			r, es := e.search(ctx, q, &tq)
 			mu.Lock()
 			defer mu.Unlock()
 			all = append(all, r...)
@@ -96,7 +96,7 @@ func dedupe(list []Result) []Result {
 	out := list[:0]
 	for _, r := range list {
 		key := r.Link
-		if m := reBtih.FindStringSubmatch(r.Link); m != nil {
+		if m := reBtih.FindStringSubmatch(r.Link + " " + r.Magnet); m != nil {
 			key = strings.ToLower(m[1])
 		} else if r.Size > 0 {
 			key = normTitle(r.Title) + "/" + strconv.FormatInt(r.Size, 10)

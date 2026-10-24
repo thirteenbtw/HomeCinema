@@ -42,8 +42,8 @@ export function TopBar({ types = true }: { types?: boolean }) {
           <Icon name="search" size={18} />
           <label className="sr" htmlFor="q">Поиск</label>
           <input id="q" ref={input} value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('searchPh')}
-            style={{ flex: 1, minWidth: 0, border: 0, outline: 'none', background: 'transparent', font: "500 14px 'Inter',sans-serif", color: 'var(--fg)' }} />
-          <span className="mono" style={{ fontSize: 11 }}>Ctrl K</span>
+            style={{ flex: 1, minWidth: 0, border: 0, outline: 'none', background: 'transparent', font: "500 calc(14px * var(--fs)) 'Inter',sans-serif", color: 'var(--fg)' }} />
+          <span className="mono" style={{ fontSize: 'calc(11px * var(--fs))' }}>Ctrl K</span>
         </form>
         {types && (
           <div role="group" aria-label="Тип" className="glass" style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 999, border: '1px solid var(--line)', boxShadow: '0 6px 20px var(--sh)' }}>

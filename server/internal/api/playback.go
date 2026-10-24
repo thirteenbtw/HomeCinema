@@ -21,15 +21,21 @@ import (
 )
 
 // browserCaps: what the PC player can decode. The UI reports optional codecs
-// it detected with MediaSource.isTypeSupported (hevc, ac3, hdr).
+// it detected with MediaSource.isTypeSupported (hevc, ac3, hdr), whether it
+// opens Matroska (mkv) and whether direct play of this file already failed
+// (nodirect).
 func browserCaps(r *http.Request) renderer.Caps {
 	q := r.URL.Query()
 	c := renderer.Caps{
 		Video:     []string{"h264", "vp9", "av1", "vp8"},
 		Audio:     []string{"aac", "mp3", "opus", "vorbis", "flac"},
 		Container: []string{"mp4", "webm", "mov", "m4v"},
-		MaxHeight: 4320, TextSubs: true,
+		MaxHeight: 4320, TextSubs: true, ToneMaps: true,
 	}
+	if q.Get("mkv") == "1" {
+		c.Container = append(c.Container, "mkv")
+	}
+	c.NoDirect = q.Get("nodirect") == "1"
 	if q.Get("hevc") == "1" {
 		c.Video = append(c.Video, "hevc")
 	}
@@ -54,13 +60,13 @@ func (s *Server) decide(f *store.File, audio *store.Track, caps renderer.Caps, q
 	target := map[string]int{"1080p": 1080, "720p": 720, "480p": 480}[quality]
 	downscale := target > 0 && f.Height > target+40
 	vOK := caps.Has(caps.Video, f.VideoCodec) && !(f.VideoCodec == "h264" && f.BitDepth > 8) &&
-		(f.HDR == "" || caps.HDR) && f.Height <= caps.MaxHeight+40 && !downscale
+		hdrOK(f.HDR, caps) && f.Height <= caps.MaxHeight+40 && !downscale
 	aOK := audio == nil || caps.Has(caps.Audio, audio.Codec)
 	cOK := caps.Has(caps.Container, f.Container)
 	var why []string
 	if !vOK {
 		switch {
-		case f.HDR != "" && !caps.HDR:
+		case !hdrOK(f.HDR, caps):
 			why = append(why, "HDR не поддерживается экраном")
 		case downscale:
 			why = append(why, "выбрано качество "+quality)
@@ -74,7 +80,10 @@ func (s *Server) decide(f *store.File, audio *store.Track, caps renderer.Caps, q
 	if !cOK {
 		why = append(why, "контейнер "+f.Container)
 	}
-	if vOK && aOK && cOK && firstAudio {
+	if caps.NoDirect {
+		why = append(why, "файл не открылся напрямую")
+	}
+	if vOK && aOK && cOK && firstAudio && !caps.NoDirect {
 		d.Direct = true
 		d.Summary = "Напрямую"
 		return d
@@ -108,6 +117,20 @@ func (s *Server) decide(f *store.File, audio *store.Track, caps renderer.Caps, q
 	return d
 }
 
+// hdrOK: HDR video plays as is on an HDR screen, or on an SDR screen when
+// the player tone-maps by itself. Dolby Vision without an HDR10/HLG base
+// layer (profile 5) is left to HDR TVs, which usually decode DV; browsers
+// would show it in wrong colours.
+func hdrOK(hdr string, caps renderer.Caps) bool {
+	switch {
+	case hdr == "":
+		return true
+	case hdr == "DV":
+		return caps.HDR && !caps.ToneMaps
+	}
+	return caps.HDR || caps.ToneMaps
+}
+
 type compatRow struct {
 	Name   string `json:"name"`
 	Mode   string `json:"mode"`
@@ -125,7 +148,7 @@ func (s *Server) compat(it *store.Item) []compatRow {
 		audio = &f.Audio[0]
 	}
 	quality := s.Store.Setting("quality", "original")
-	pc := renderer.Caps{Video: []string{"h264", "vp9", "av1", "hevc"}, Audio: []string{"aac", "mp3", "opus", "flac"}, Container: []string{"mp4", "webm", "mov", "m4v"}, MaxHeight: 4320}
+	pc := renderer.Caps{Video: []string{"h264", "vp9", "av1", "hevc"}, Audio: []string{"aac", "mp3", "opus", "flac"}, Container: []string{"mp4", "webm", "mov", "m4v", "mkv"}, MaxHeight: 4320, ToneMaps: true}
 	rows := []compatRow{}
 	d := s.decide(f, audio, pc, quality, true)
 	rows = append(rows, compatRow{"Этот ПК", d.Summary, statusOf(d)})

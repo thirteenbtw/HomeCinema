@@ -15,13 +15,15 @@ import (
 	"time"
 )
 
-// Indexer is a Torznab endpoint the user adds (Jackett, Prowlarr or any other
-// Torznab-compatible service). The app ships with no sources (FR-T6).
+// Indexer is a search source: a Torznab endpoint the user adds (Jackett,
+// Prowlarr or any other Torznab-compatible service), or a public JacRed
+// parser, which new installs start with.
 type Indexer struct {
 	Name   string `json:"name"`
 	URL    string `json:"url"` // e.g. http://127.0.0.1:9117/api/v2.0/indexers/all/results/torznab/
 	APIKey string `json:"apiKey"`
 	On     bool   `json:"on"`
+	Kind   string `json:"kind,omitempty"` // "" = Torznab, KindJacRed
 }
 
 type SearchPrefs struct {
@@ -34,7 +36,8 @@ type SearchPrefs struct {
 type Result struct {
 	Indexer string  `json:"indexer"`
 	Title   string  `json:"title"`
-	Link    string  `json:"link"` // magnet or .torrent URL
+	Link    string  `json:"link"`             // .torrent URL, or the magnet when there is none
+	Magnet  string  `json:"magnet,omitempty"` // fallback when the .torrent cannot be fetched
 	Size    int64   `json:"size"`
 	Seeds   int     `json:"seeds"`
 	Peers   int     `json:"peers"`
@@ -67,6 +70,20 @@ type rss struct {
 func (e *Engine) Indexers() []Indexer {
 	var out []Indexer
 	_ = json.Unmarshal([]byte(e.Store.Setting("indexers", "[]")), &out)
+	if e.Store.Setting("jacredAdded", "") == "" {
+		// once, for new and existing installs; removing it afterwards sticks.
+		// JacRed sites added by hand as Torznab are covered by it.
+		kept := defaultIndexers()
+		for _, in := range out {
+			if !isJacRedSite(in) {
+				kept = append(kept, in)
+			}
+		}
+		out = kept
+		if e.SetIndexers(out) == nil {
+			_ = e.Store.SetSetting("jacredAdded", "1")
+		}
+	}
 	if out == nil {
 		out = []Indexer{}
 	}
@@ -87,6 +104,12 @@ func (e *Engine) Prefs() SearchPrefs {
 // Search queries all enabled indexers in parallel and ranks the results by the
 // preference profile; the top one is marked Best for one-click "watch now".
 func (e *Engine) Search(ctx context.Context, query string) ([]Result, []string) {
+	return e.search(ctx, query, nil)
+}
+
+// search takes the catalog title behind the query when there is one: JacRed
+// matches far better on separate title, original title and year.
+func (e *Engine) search(ctx context.Context, query string, tq *TitleQuery) ([]Result, []string) {
 	idx := e.Indexers()
 	prefs := e.Prefs()
 	var mu sync.Mutex
@@ -101,7 +124,13 @@ func (e *Engine) Search(ctx context.Context, query string) ([]Result, []string) 
 		wg.Add(1)
 		go func(in Indexer) {
 			defer wg.Done()
-			res, err := queryTorznab(ctx, client, in, query)
+			var res []Result
+			var err error
+			if in.Kind == KindJacRed || isJacRedSite(in) {
+				res, err = queryJacRed(ctx, client, in, query, tq)
+			} else {
+				res, err = queryTorznab(ctx, client, in, query)
+			}
 			mu.Lock()
 			defer mu.Unlock()
 			if err != nil {
@@ -166,12 +195,26 @@ func queryTorznab(ctx context.Context, client *http.Client, in Indexer, query st
 			case "peers":
 				r.Peers, _ = strconv.Atoi(a.Value)
 			case "magneturl":
-				r.Link = a.Value // prefer magnet: no extra download through the indexer
+				r.Magnet = a.Value
+			case "infohash":
+				if r.Magnet == "" && len(a.Value) == 40 {
+					r.Magnet = "magnet:?xt=urn:btih:" + strings.ToLower(a.Value) + "&dn=" + url.QueryEscape(it.Title)
+				}
 			case "size":
 				if r.Size == 0 {
 					r.Size, _ = strconv.ParseInt(a.Value, 10, 64)
 				}
 			}
+		}
+		// A .torrent carries the file list, so the download starts at once; a
+		// magnet first has to fetch it from peers. Keep both.
+		if strings.HasPrefix(r.Link, "magnet:") {
+			if r.Magnet == "" {
+				r.Magnet = r.Link
+			}
+		}
+		if r.Link == "" || strings.HasPrefix(r.Link, "magnet:") {
+			r.Link, r.Magnet = r.Magnet, ""
 		}
 		r.Quality = detectQuality(r.Title)
 		r.Lang = detectLang(r.Title)
@@ -223,8 +266,8 @@ func score(r Result, p SearchPrefs) float64 {
 	if p.MaxSizeGB > 0 && r.Size > int64(p.MaxSizeGB)<<30 {
 		s -= 30
 	}
-	if strings.HasPrefix(r.Link, "magnet:") {
-		s += 1
+	if strings.HasPrefix(r.Link, "http") {
+		s += 1 // a .torrent file skips the metadata wait
 	}
 	return s
 }
@@ -235,7 +278,7 @@ func FetchTorrent(ctx context.Context, link string) ([]byte, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
-	client := &http.Client{Timeout: 30 * time.Second, CheckRedirect: func(r *http.Request, via []*http.Request) error {
+	client := &http.Client{Timeout: 20 * time.Second, CheckRedirect: func(r *http.Request, via []*http.Request) error {
 		if r.URL.Scheme == "magnet" {
 			return http.ErrUseLastResponse
 		}

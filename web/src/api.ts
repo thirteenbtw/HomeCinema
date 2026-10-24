@@ -40,23 +40,23 @@ export type TorrentFile = { index: number; path: string; size: number; progress:
 export type TorrentInfo = {
   hash: string; name: string; size: number; done: number; progress: number; status: string; mode: string; keep: boolean;
   down: number; up: number; peers: number; seeds: number; ratio: number; eta: number; priority: number; addedAt: number; doneAt: number;
-  files?: TorrentFile[]; imported?: string[]; error?: string; fileCount: number;
+  files?: TorrentFile[]; imported?: string[]; error?: string; fileCount: number; known: number; hint?: string;
 };
 export type TorrentOverview = {
   running: boolean; error?: string; vpnDown: boolean; diskLow: boolean; freeGB: number; down: number; up: number; iface: string;
-  killSwitch: boolean; port: number; items: TorrentInfo[];
+  killSwitch: boolean; port: number; items: TorrentInfo[]; dhtNodes: number;
 };
 export type StreamStatus = {
   hash: string; name: string; fileIndex: number; fileName: string; size: number; buffered: number; target: number; ready: boolean;
-  position: number; down: number; seeds: number; peers: number; pieces: number[]; numPieces: number; pieceSize: number; progress: number;
+  position: number; down: number; seeds: number; peers: number; known: number; dhtNodes: number; hint?: string; pieces: number[]; numPieces: number; pieceSize: number; progress: number;
 };
 export type TorrentSettings = {
   downloadDir: string; moviesDir: string; showsDir: string; port: number; downKBs: number; upKBs: number; seedRatio: number;
   seedMinutes: number; bindIface: string; killSwitch: boolean; encryption: string; dht: boolean; pex: boolean; upnp: boolean;
   proxy: string; bufferMB: number; bufferPct: number; minFreeGB: number; maxActive: number; scheduleFrom: number; scheduleTo: number;
-  autoImport: boolean; acceptedRisk: boolean;
+  autoImport: boolean; acceptedRisk: boolean; trackers: string;
 };
-export type SearchResult = { indexer: string; title: string; link: string; size: number; seeds: number; peers: number; quality: string; lang: string; date: string; score: number; best: boolean };
+export type SearchResult = { indexer: string; title: string; link: string; magnet?: string; size: number; seeds: number; peers: number; quality: string; lang: string; date: string; score: number; best: boolean };
 export type CatalogItem = {
   kind: 'movie' | 'tv'; id: number; title: string; origTitle: string; year: number; poster: string; backdrop: string;
   overview: string; rating: number; votes: number; genreIds: number[];
@@ -67,7 +67,7 @@ export type CatalogTitle = CatalogItem & {
   seasons?: { number: number; name: string; episodes: number; year: number }[];
   cast: CastMember[]; related: CatalogItem[];
 };
-export type Indexer = { name: string; url: string; apiKey: string; on: boolean };
+export type Indexer = { name: string; url: string; apiKey: string; on: boolean; kind?: '' | 'jacred' };
 export type SearchPrefs = { quality: string; language: string; maxSizeGB: number; minSeeds: number };
 export type Caps = { video: string[]; audio: string[]; container: string[]; maxHeight: number; hdr: boolean };
 export type Device = { id: string; name: string; model: string; proto: string; addr: string; port: number; manual: boolean; online: boolean; busy: boolean; caps: Caps };
@@ -131,6 +131,11 @@ export function clientCaps(): string {
   if (can('video/mp4; codecs="hvc1.2.4.L153.B0"') || can('video/mp4; codecs="hev1.1.6.L93.B0"')) p.push('hevc=1');
   if (can('audio/mp4; codecs="ac-3"') || can('audio/mp4; codecs="ec-3"')) p.push('ac3=1');
   if (window.matchMedia && window.matchMedia('(dynamic-range: high)').matches) p.push('hdr=1');
+  // Chromium (Edge WebView2, Chrome) opens Matroska through <video src>, so
+  // MKV files play as they are; the player falls back to a remux if not.
+  const v = document.createElement('video');
+  const brands: { brand: string }[] = (navigator as any).userAgentData?.brands || [];
+  if (v.canPlayType('video/x-matroska') || v.canPlayType('video/mkv') || brands.some((b) => /Chromium/.test(b.brand))) p.push('mkv=1');
   capsCache = p.join('&');
   return capsCache;
 }

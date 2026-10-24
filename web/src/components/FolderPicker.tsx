@@ -20,7 +20,7 @@ export function FolderPicker({ title, initial, onPick, onClose }: { title: strin
   return (
     <Modal title={title} onClose={onClose}>
       <form className="row" onSubmit={(e) => { e.preventDefault(); setPath(typed); }}>
-        <input className="inp mono" style={{ flex: 1, fontSize: 12 }} value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="D:\Фильмы" aria-label={tr('Путь', 'Path')} />
+        <input className="inp mono" style={{ flex: 1, fontSize: 'calc(12px * var(--fs))' }} value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="D:\Фильмы" aria-label={tr('Путь', 'Path')} />
         <button className="btn btn-l sm">{tr('Открыть', 'Open')}</button>
       </form>
       {err && <div className="err">{err}</div>}
