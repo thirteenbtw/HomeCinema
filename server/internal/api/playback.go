@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -471,6 +472,10 @@ func (s *Server) subtitle(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	if r.URL.Query().Has("from") {
+		s.serveSubtitleFrom(w, r, f.Path, f.Path, f.Subs[n])
+		return
+	}
 	p, err := s.Trans.Subtitle(r.Context(), f.Path, f.Subs[n], queryFloat(r, "offset"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
@@ -479,6 +484,30 @@ func (s *Server) subtitle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/vtt; charset=utf-8")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	http.ServeFile(w, r, p)
+}
+
+// serveSubtitleFrom answers the PC player, which asks for cues from its
+// position on and polls while X-Subs-Done is 0: cues arrive as ffmpeg reads
+// through the file instead of after it has read all of it.
+func (s *Server) serveSubtitleFrom(w http.ResponseWriter, r *http.Request, source, input string, t store.Track) {
+	p, done, err := s.Trans.SubtitleFrom(source, input, t, queryFloat(r, "from"))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+	b, _ := os.ReadFile(p)
+	if !done {
+		// Only whole cues: the last one may still be half written.
+		if i := bytes.LastIndex(b, []byte("\n\n")); i >= 0 {
+			b = b[:i+2]
+		} else {
+			b = nil
+		}
+	}
+	w.Header().Set("Content-Type", "text/vtt; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Subs-Done", map[bool]string{true: "1", false: "0"}[done])
+	_, _ = w.Write(b)
 }
 
 // openExternal launches VLC/mpv on this PC (FR-9).
@@ -548,7 +577,7 @@ func (s *Server) probeURL(ctx context.Context, key, url string) (*store.File, er
 		return f, nil
 	}
 	s.probes.mu.Unlock()
-	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 4*time.Minute)
 	defer cancel()
 	p := &probe.Prober{FFprobe: s.Cfg.FFprobe}
 	f, err := p.ProbeURL(ctx, url)

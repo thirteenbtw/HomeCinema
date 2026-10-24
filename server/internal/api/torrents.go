@@ -167,10 +167,7 @@ func (s *Server) torrentPlayback(ctx context.Context, hash string, idx int, caps
 	if torrent.Blocked(name) {
 		return nil, badRequest("исполняемые файлы не открываются")
 	}
-	input := s.loopbackBase() + "/api/t/" + s.streamToken("torrent:"+strings.ToLower(hash)) + fmt.Sprintf("/torrents/%s/files/%d", strings.ToLower(hash), idx)
-	if p, ok := s.Torrents.LocalPath(hash, idx); ok {
-		input = p
-	}
+	input := s.torrentInput(hash, idx)
 	f, err := s.probeURL(ctx, fmt.Sprintf("%s/%d", hash, idx), input)
 	if err != nil {
 		return nil, badRequest("%v", err)
@@ -183,13 +180,48 @@ func (s *Server) torrentPlayback(ctx context.Context, hash string, idx int, caps
 	if err != nil {
 		return nil, err
 	}
-	pb.Subs = []trackOut{} // subtitles of streams in progress are not extracted
+	for i := range pb.Subs {
+		if pb.Subs[i].URL != "" {
+			pb.Subs[i].URL = fmt.Sprintf("/api/torrents/%s/files/%d/subs/%d", strings.ToLower(hash), idx, pb.Subs[i].Index)
+		}
+	}
 	pb.Title = name
 	if i := strings.LastIndexAny(name, `/\`); i >= 0 {
 		pb.Title = name[i+1:]
 	}
 	pb.Info = "Торрент · " + pb.Summary
 	return pb, nil
+}
+
+// torrentInput is what ffmpeg reads for a torrent file: the file itself once
+// it is complete, otherwise the server's own stream, which waits for pieces.
+func (s *Server) torrentInput(hash string, idx int) string {
+	if p, ok := s.Torrents.LocalPath(hash, idx); ok {
+		return p
+	}
+	return s.loopbackBase() + "/api/t/" + s.streamToken("torrent:"+strings.ToLower(hash)) + fmt.Sprintf("/torrents/%s/files/%d", strings.ToLower(hash), idx)
+}
+
+// torrentSubtitle serves an embedded subtitle track of a torrent file, from
+// the player's position on, as it is extracted.
+func (s *Server) torrentSubtitle(w http.ResponseWriter, r *http.Request) {
+	hash := strings.ToLower(r.PathValue("hash"))
+	idx, err1 := strconv.Atoi(r.PathValue("idx"))
+	n, err2 := strconv.Atoi(strings.TrimSuffix(r.PathValue("n"), ".vtt"))
+	if err1 != nil || err2 != nil {
+		http.NotFound(w, r)
+		return
+	}
+	input := s.torrentInput(hash, idx)
+	f, err := s.probeURL(r.Context(), fmt.Sprintf("%s/%d", hash, idx), input)
+	if err != nil || n < 0 || n >= len(f.Subs) {
+		http.NotFound(w, r)
+		return
+	}
+	if !r.URL.Query().Has("from") {
+		r.URL.RawQuery = "from=0"
+	}
+	s.serveSubtitleFrom(w, r, fmt.Sprintf("torrent:%s/%d", hash, idx), input, f.Subs[n])
 }
 
 func containerFromName(name, probed string) string {

@@ -102,8 +102,42 @@ fn start_server(app: &AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+// External links (TMDB, IMDb…) open in the system browser. A link with
+// target="_blank" or window.open() asks the webview for a new window, which
+// the shell does not create, so the init script turns those into a plain
+// navigation and the navigation hook hands any off-site URL to the browser.
+const EXTERNAL_LINKS_JS: &str = r#"
+(() => {
+  const external = (href) => { try { const u = new URL(href, location.href); return /^https?:$/.test(u.protocol) && u.origin !== location.origin ? u.href : null; } catch { return null; } };
+  document.addEventListener('click', (e) => {
+    const a = e.target instanceof Element && e.target.closest('a[href]');
+    const url = a && external(a.getAttribute('href'));
+    if (!url || e.defaultPrevented || e.button !== 0) return;
+    e.preventDefault();
+    location.href = url;
+  }, true);
+  const open = window.open;
+  window.open = (href, ...rest) => { const url = href && external(String(href)); if (url) { location.href = url; return null; } return open.call(window, href, ...rest); };
+})();
+"#;
+
+fn external_links<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
+    tauri::plugin::Builder::new("external-links")
+        .js_init_script(EXTERNAL_LINKS_JS)
+        .on_navigation(|_webview, url| {
+            let local = matches!(url.host_str(), Some("127.0.0.1" | "localhost" | "tauri.localhost")) || !matches!(url.scheme(), "http" | "https");
+            if !local {
+                #[allow(deprecated)]
+                let _ = tauri_plugin_shell::open::open(None, url.as_str(), None);
+            }
+            local
+        })
+        .build()
+}
+
 pub fn run() {
     tauri::Builder::default()
+        .plugin(external_links())
         .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             if let Some(m) = magnet_in(argv.iter().map(|s| s.as_str())) {
                 open_magnet(app, &m);
