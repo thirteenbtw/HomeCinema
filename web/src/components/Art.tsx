@@ -56,3 +56,15 @@ export function Bar({ pct, style }: { pct: number; style?: CSSProperties }) {
     </div>
   );
 }
+
+// Backdrop shows a wide still whole instead of cropping it to the hero's
+// shape: the full 16:9 image sits on the right and fades into a blurred copy
+// of itself that fills the rest of the hero.
+export function Backdrop({ src }: { src: string }) {
+  return (
+    <div aria-hidden="true" style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+      <img src={src} alt="" style={{ position: 'absolute', inset: -60, width: 'calc(100% + 120px)', height: 'calc(100% + 120px)', objectFit: 'cover', filter: 'blur(48px) saturate(1.15) brightness(.8)' }} />
+      <img key={src} src={src} alt="" className="bd-img" />
+    </div>
+  );
+}

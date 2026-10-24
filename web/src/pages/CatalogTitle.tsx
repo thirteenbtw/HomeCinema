@@ -3,11 +3,13 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api, ApiError, fmtRuntime, fmtSize, type CatalogTitle, type SearchResult } from '../api';
 import { useApp, useAsync } from '../state';
 import { t, tr } from '../i18n';
-import { Art, ambientFor, paletteFor } from '../components/Art';
+import { Art, Backdrop, ambientFor, paletteFor } from '../components/Art';
 import { Icon, PlayGlyph } from '../components/Icon';
 import { Modal } from '../components/CastDialog';
 import { Section, useAmbient } from '../components/Shell';
 import { CatalogCard } from './Catalog';
+import { HeroTrailer, rememberTrailer } from '../components/Trailer';
+import { personLink } from './Person';
 
 type TitleResp = { title: CatalogTitle; library: { kind: 'movie' | 'show'; id: number } | null; indexers: boolean };
 type TorrentsResp = { results: SearchResult[]; errors: string[]; loose: boolean };
@@ -46,6 +48,7 @@ function Detail({ d }: { d: TitleResp }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [risk, setRisk] = useState<null | (() => void)>(null);
   const [sky] = paletteFor(x.title);
+  if (x.trailer) rememberTrailer({ kind: x.kind, id: x.id }, x.trailer);
 
   useEffect(() => { setAmbient(ambientFor(x.title)); return () => setAmbient(null); }, [x.title]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -87,12 +90,13 @@ function Detail({ d }: { d: TitleResp }) {
 
   return (
     <main className="main" style={{ gap: 28, paddingTop: 16 }}>
-      <section style={{ position: 'relative', overflow: 'hidden', borderRadius: 20, background: sky, minHeight: 420, display: 'flex', flexDirection: 'column', padding: '20px 40px 36px', color: '#FFFFFF', boxShadow: '0 20px 50px var(--sh)' }}>
-        {x.backdrop && <img aria-hidden="true" src={x.backdrop} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
+      <section className="hero" style={{ position: 'relative', overflow: 'hidden', borderRadius: 20, background: sky, minHeight: 'clamp(380px, 34vw, 540px)', display: 'flex', flexDirection: 'column', padding: '20px 40px 36px', color: '#FFFFFF', boxShadow: '0 20px 50px var(--sh)' }}>
+        {x.backdrop && <Backdrop src={x.backdrop} />}
+        <HeroTrailer trailer={x.trailer ? { kind: x.kind, id: x.id } : null} />
         <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg,#000000D0 0%,#00000080 55%,#00000020 85%)' }} />
         <nav aria-label={tr('Путь', 'Breadcrumb')} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6, fontSize: 'calc(12px * var(--fs))', fontWeight: 600 }}>
           <button onClick={() => nav(-1)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 10px', borderRadius: 999, background: '#FFFFFF2E', color: '#FFFFFF', border: 0, cursor: 'pointer', font: 'inherit' }}><Icon name="left" size={14} />{t('back')}</button>
-          <Link to={`/catalog${show ? '?kind=tv' : ''}`} style={{ color: '#FFFFFF' }}>{t('catalog')}</Link>
+          <Link to={show ? '/?kind=tv' : '/'} style={{ color: '#FFFFFF' }}>{t('home')}</Link>
           <span style={{ color: '#C9CCD1' }}>›</span><span>{x.title}</span>
         </nav>
         <div style={{ position: 'relative', display: 'flex', gap: 28, alignItems: 'flex-end', marginTop: 'auto', paddingTop: 28, flexWrap: 'wrap' }}>
@@ -119,7 +123,7 @@ function Detail({ d }: { d: TitleResp }) {
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32 }}>
         <div style={{ flex: '999 1 480px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 28 }}>
-          <p style={{ margin: 0, fontSize: 'calc(14px * var(--fs))', lineHeight: 1.65, color: 'var(--fg2)', maxWidth: 760 }}>{x.overview || tr('Описания нет.', 'No description.')}</p>
+          <p className="note" style={{ margin: 0, fontSize: 'calc(14px * var(--fs))', lineHeight: 1.65, color: 'var(--fg2)', maxWidth: 760 }}>{x.overview || tr('Описания нет.', 'No description.')}</p>
 
           <Section title={tr('Раздачи', 'Releases')} note={tr('Из источников поиска · «Смотреть» начинает показ, пока файл качается', 'From your search sources · “Watch” starts playback while the file downloads')}>
             {!d.indexers ? (
@@ -177,13 +181,13 @@ function Detail({ d }: { d: TitleResp }) {
             <Section title={t('cast')}>
               <div className="scroll-x">
                 {x.cast.map((a) => (
-                  <div key={a.name + a.role} style={{ width: 104, flex: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <Link key={a.name + a.role} to={personLink(a)} className="castcard" style={{ width: 104, flex: 'none', display: 'flex', flexDirection: 'column', gap: 6, color: 'var(--fg)' }}>
                     <div style={{ width: 104, aspectRatio: '3/4', borderRadius: 10, overflow: 'hidden', background: '#3A3B3E' }}>
                       {a.photo && <img src={a.photo} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                     </div>
                     <div style={{ fontSize: 'calc(12px * var(--fs))', fontWeight: 700, lineHeight: 1.2 }}>{a.name}</div>
                     <div className="sub" style={{ fontSize: 'calc(11px * var(--fs))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.role}</div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </Section>

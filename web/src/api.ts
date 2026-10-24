@@ -5,7 +5,7 @@ export type FileInfo = {
   id: number; itemId: number; name: string; size: number; container: string; duration: number; videoCodec: string;
   width: number; height: number; bitDepth: number; hdr: string; audio: Track[] | null; subs: Track[] | null;
 };
-export type CastMember = { name: string; role: string; photo: string };
+export type CastMember = { name: string; role: string; photo: string; id?: number; tmdbId?: number };
 export type Progress = { position: number; duration: number; watched: boolean; device: string; updatedAt: number };
 export type Item = {
   id: number; kind: 'movie' | 'episode'; title: string; origTitle?: string; year: number; showId?: number; showTitle?: string;
@@ -16,7 +16,7 @@ export type Item = {
 export type Title = {
   kind: 'movie' | 'show'; id: number; title: string; year: number; poster: string; backdrop: string; genres: string[];
   rating: number; quality: string; addedAt: number; watched: boolean; progress: number; favorite: boolean; later: boolean;
-  episodes?: number; overview: string;
+  episodes?: number; overview: string; tmdbId?: number;
 };
 export type Show = {
   id: number; title: string; year: number; tmdbId: number; overview: string; poster: string; backdrop: string; genres: string[];
@@ -24,7 +24,7 @@ export type Show = {
   seasons?: { number: number; episodes: Item[] }[];
 };
 export type Profile = { id: number; name: string; hasPin: boolean; color: string; prefs: Prefs; isKid: boolean };
-export type Prefs = { theme?: 'light' | 'dark' | 'oled'; accent?: 'red' | 'amber' | 'blue' | 'green'; bg?: 'live' | 'static' | 'off'; intensity?: number; posterTint?: boolean };
+export type Prefs = { theme?: 'light' | 'dark' | 'oled'; accent?: 'red' | 'amber' | 'blue' | 'green'; bg?: 'live' | 'static' | 'off'; intensity?: number; posterTint?: boolean; trailers?: boolean };
 export type ScanStatus = { scanning: boolean; library: string; done: number; total: number; added: number; movies: number; shows: number; matching: number; error?: string };
 export type AppState = {
   version: string; setupDone: boolean; authRequired: boolean; lanUrls: string[]; uiLang: string; local: boolean;
@@ -65,7 +65,13 @@ export type CatalogPage = { items: CatalogItem[]; page: number; pages: number };
 export type CatalogTitle = CatalogItem & {
   genres: string[]; runtime: number; tagline: string; cert: string; imdbId: string; countries: string[] | null;
   seasons?: { number: number; name: string; episodes: number; year: number }[];
-  cast: CastMember[]; related: CatalogItem[];
+  cast: CastMember[]; related: CatalogItem[]; trailer?: string;
+};
+export type PersonCard = { id: number; name: string; photo: string; knownFor: string };
+export type PersonCredit = CatalogItem & { role: string; dept: 'acting' | 'directing' | 'other'; depts?: ('acting' | 'directing' | 'other')[]; date: string; order: number };
+export type Person = {
+  id: number; name: string; photo: string; backdrop: string; bio: string; birthday: string; deathday: string; place: string; dept: string; imdbId: string;
+  gender: number; knownFor: CatalogItem[]; upcoming: PersonCredit[]; credits: PersonCredit[];
 };
 export type Indexer = { name: string; url: string; apiKey: string; on: boolean; kind?: '' | 'jacred' };
 export type SearchPrefs = { quality: string; language: string; maxSizeGB: number; minSeeds: number };

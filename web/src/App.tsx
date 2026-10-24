@@ -1,12 +1,12 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AppProvider, useApp } from './state';
 import { Shell } from './components/Shell';
-import Home from './pages/Home';
 import Library from './pages/Library';
 import Search from './pages/Search';
 import { MoviePage, ShowPage } from './pages/Movie';
 import Catalog from './pages/Catalog';
 import CatalogTitlePage from './pages/CatalogTitle';
+import PersonPage, { PeoplePage, PersonFind } from './pages/Person';
 import Player from './pages/Player';
 import Torrents from './pages/Torrents';
 import Devices from './pages/Devices';
@@ -23,11 +23,14 @@ function Gate() {
   return (
     <Routes>
       <Route element={<Shell />}>
-        <Route index element={<Home />} />
+        <Route index element={<Catalog />} />
         <Route path="library/:kind" element={<Library />} />
         <Route path="search" element={<Search />} />
-        <Route path="catalog" element={<Catalog />} />
+        <Route path="catalog" element={<ToHome />} />
         <Route path="catalog/:kind/:id" element={<CatalogTitlePage />} />
+        <Route path="person/find" element={<PersonFind />} />
+        <Route path="person/:id" element={<PersonPage />} />
+        <Route path="people" element={<PeoplePage />} />
         <Route path="movie/:id" element={<MoviePage />} />
         <Route path="show/:id" element={<ShowPage />} />
         <Route path="play/torrent/:hash" element={<Player />} />
@@ -40,6 +43,12 @@ function Gate() {
       </Route>
     </Routes>
   );
+}
+
+// The catalog moved to Home; old /catalog links keep their filters.
+function ToHome() {
+  const { search } = useLocation();
+  return <Navigate to={'/' + search} replace />;
 }
 
 export default function App() {

@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useApp } from '../state';
-import { t } from '../i18n';
+import { t, tr } from '../i18n';
 import { Icon } from './Icon';
 
 // Header from the design: back/forward, glass search with type filter, live
-// background toggle and the current TV.
-export function TopBar({ types = true }: { types?: boolean }) {
+// background toggle and the current TV. On Home the search goes to the
+// catalog (all of TMDB) instead of the local library.
+export function TopBar({ types = true, catalog = false }: { types?: boolean; catalog?: boolean }) {
   const nav = useNavigate();
   const { prefs, setPrefs, devices, cast } = useApp();
   const [params] = useSearchParams();
+  const loc = useLocation();
   const [q, setQ] = useState(params.get('q') || '');
   const [kind, setKind] = useState(params.get('kind') || '');
   const input = useRef<HTMLInputElement>(null);
@@ -25,7 +27,19 @@ export function TopBar({ types = true }: { types?: boolean }) {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  // Keep the box in step with the URL, but never under the user's fingers.
+  useEffect(() => { if (catalog && document.activeElement !== input.current) setQ(params.get('q') || ''); }, [catalog, params]);
+  // On Home, results show up as you type.
+  const typed = useRef(false);
+  useEffect(() => {
+    if (!catalog || !typed.current) return;
+    const id = window.setTimeout(() => nav(`/?search=1${q.trim() ? '&q=' + encodeURIComponent(q.trim()) : ''}`, { replace: true }), 400);
+    return () => window.clearTimeout(id);
+  }, [q, catalog]); // eslint-disable-line react-hooks/exhaustive-deps
+
+
   const go = (k = kind, text = q) => {
+    if (catalog) { nav(`/?search=1${text.trim() ? '&q=' + encodeURIComponent(text.trim()) : ''}`); return; }
     if (!text.trim()) return;
     nav(`/search?q=${encodeURIComponent(text.trim())}${k ? '&kind=' + k : ''}`);
   };
@@ -40,13 +54,23 @@ export function TopBar({ types = true }: { types?: boolean }) {
         <form role="search" className="glass" onSubmit={(e) => { e.preventDefault(); go(); }}
           style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, height: 44, padding: '0 16px', borderRadius: 999, border: '1px solid var(--line)', boxShadow: '0 6px 20px var(--sh)', color: 'var(--mut)' }}>
           <Icon name="search" size={18} />
-          <label className="sr" htmlFor="q">Поиск</label>
-          <input id="q" ref={input} value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('searchPh')}
+          <label className="sr" htmlFor="q">{tr('Поиск', 'Search')}</label>
+          <input id="q" ref={input} value={q} onChange={(e) => { typed.current = true; setQ(e.target.value); }}
+            onFocus={() => { if (catalog && !params.get('search') && !params.get('q')) nav('/?search=1'); }} placeholder={catalog ? tr('Найти фильм или сериал', 'Find a movie or show') : t('searchPh')}
             style={{ flex: 1, minWidth: 0, border: 0, outline: 'none', background: 'transparent', font: "500 calc(14px * var(--fs)) 'Inter',sans-serif", color: 'var(--fg)' }} />
-          <span className="mono" style={{ fontSize: 'calc(11px * var(--fs))' }}>Ctrl K</span>
+          {catalog && (q || params.get('search')) ? <button type="button" className="ri" style={{ width: 28, height: 28 }} aria-label={tr('Закрыть поиск', 'Close search')} onClick={() => { typed.current = false; setQ(''); nav('/'); }}><Icon name="close" size={14} /></button>
+            : <span className="mono" style={{ fontSize: 'calc(11px * var(--fs))' }}>Ctrl K</span>}
         </form>
-        {types && (
-          <div role="group" aria-label="Тип" className="glass" style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 999, border: '1px solid var(--line)', boxShadow: '0 6px 20px var(--sh)' }}>
+        {catalog && (
+          <div role="group" aria-label={tr('Тип', 'Type')} className="glass" style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 999, border: '1px solid var(--line)', boxShadow: '0 6px 20px var(--sh)' }}>
+            {[['', t('movies')], ['tv', t('shows')], ['people', t('people')]].map(([k, label]) => {
+              const on = k === 'people' ? loc.pathname === '/people' : loc.pathname === '/' && (params.get('kind') || '') === k;
+              return <button key={k} className={'pill' + (on ? ' on' : ' ghost')} aria-pressed={on} onClick={() => nav(k === 'people' ? '/people' : k ? `/?kind=${k}` : '/')}>{label}</button>;
+            })}
+          </div>
+        )}
+        {types && !catalog && (
+          <div role="group" aria-label={tr('Тип', 'Type')} className="glass" style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 999, border: '1px solid var(--line)', boxShadow: '0 6px 20px var(--sh)' }}>
             {[['', t('all')], ['movie', t('movies')], ['show', t('shows')], ['people', t('people')]].map(([k, label]) => (
               <button key={k} className={'pill' + (kind === k ? ' on' : ' ghost')} aria-pressed={kind === k}
                 onClick={() => { setKind(k); if (q.trim()) go(k); }}>{label}</button>

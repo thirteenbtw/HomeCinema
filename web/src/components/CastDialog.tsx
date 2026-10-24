@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { api, fmtTime } from '../api';
 import { useApp } from '../state';
@@ -14,7 +15,9 @@ export function Modal({ title, onClose, children, wide }: { title: string; onClo
     window.addEventListener('keydown', onKey);
     return () => { window.removeEventListener('keydown', onKey); prev?.focus(); };
   }, [onClose]);
-  return (
+  // Rendered at the app root: a parent with backdrop-filter (the glass cards)
+  // would otherwise trap the fixed overlay inside itself.
+  return createPortal(
     <div className="modal-back" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal" role="dialog" aria-modal="true" aria-label={title} ref={ref} style={wide ? { width: 'min(820px,100%)' } : undefined}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -23,7 +26,8 @@ export function Modal({ title, onClose, children, wide }: { title: string; onClo
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.querySelector('.app') || document.body,
   );
 }
 

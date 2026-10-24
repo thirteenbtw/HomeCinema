@@ -3,11 +3,13 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api, fmtRuntime, fmtSize, fmtTime, type Compat, type Item, type Show, type Title } from '../api';
 import { useApp, useAsync } from '../state';
 import { t, tr } from '../i18n';
-import { Art, ambientFor, paletteFor } from '../components/Art';
+import { Art, Backdrop, ambientFor, paletteFor } from '../components/Art';
 import { Icon, PlayGlyph } from '../components/Icon';
 import { Modal } from '../components/CastDialog';
 import { Section, useAmbient } from '../components/Shell';
 import { TopBar } from '../components/TopBar';
+import { HeroTrailer } from '../components/Trailer';
+import { personLink } from './Person';
 
 type ItemResp = { item: Item; next: Item | null; similar: Title[]; compat: Compat[]; metaLang: string };
 type ShowResp = { show: Show; nextUp: Item | null };
@@ -47,6 +49,7 @@ function Detail({ kind, item, show, nextUp, similar = [], compat = [], reload }:
   const backdrop = kind === 'movie' ? item!.backdrop : show!.backdrop;
   const overview = kind === 'movie' ? item!.overview : show!.overview;
   const cast = (kind === 'movie' ? item!.cast : show!.cast) || [];
+  const tmdbId = kind === 'movie' ? item!.tmdbId : show!.tmdbId;
   const rating = kind === 'movie' ? item!.rating : show!.rating;
   const fav = kind === 'movie' ? item!.favorite : show!.favorite;
   const later = kind === 'movie' ? item!.later : show!.later;
@@ -93,10 +96,10 @@ function Detail({ kind, item, show, nextUp, similar = [], compat = [], reload }:
   return (
     <main className="main" style={{ gap: 28 }}>
       <TopBar types={false} />
-      <section onMouseMove={onHero} onMouseLeave={() => setPar((p) => ({ ...p, hover: false }))}
-        style={{ position: 'relative', overflow: 'hidden', borderRadius: 20, background: sky, minHeight: 440, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '20px 40px 36px', color: '#FFFFFF', boxShadow: '0 20px 50px var(--sh)' }}>
+      <section className="hero" onMouseMove={onHero} onMouseLeave={() => setPar((p) => ({ ...p, hover: false }))}
+        style={{ position: 'relative', overflow: 'hidden', borderRadius: 20, background: sky, minHeight: 'clamp(380px, 34vw, 540px)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '20px 40px 36px', color: '#FFFFFF', boxShadow: '0 20px 50px var(--sh)' }}>
         {backdrop ? (
-          <div aria-hidden="true" className="lay" style={{ position: 'absolute', inset: -40, transform: mv(-10) }}><img src={backdrop} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></div>
+          <Backdrop src={backdrop} />
         ) : (
           <>
             <div aria-hidden="true" className="lay" style={{ position: 'absolute', inset: -40, transform: mv(-8) }}><div style={{ position: 'absolute', right: -60, top: -140, width: 720, height: 720, borderRadius: '50%', background: '#FFFFFF10' }} /></div>
@@ -104,6 +107,7 @@ function Detail({ kind, item, show, nextUp, similar = [], compat = [], reload }:
             <div aria-hidden="true" className="lay" style={{ position: 'absolute', left: -40, right: -40, bottom: -30, height: 190, background: '#00000055', transform: mv(-36) }} />
           </>
         )}
+        <HeroTrailer trailer={tmdbId ? { kind: kind === 'movie' ? 'movie' : 'tv', id: tmdbId } : null} />
         <div aria-hidden="true" style={{ position: 'absolute', width: 440, height: 440, margin: '-220px 0 0 -220px', left: par.sx, top: par.sy, borderRadius: '50%', background: orb, filter: 'blur(70px)', opacity: live && par.hover ? 0.5 : 0, mixBlendMode: 'screen', transition: 'opacity .4s', pointerEvents: 'none' }} />
         <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg,#000000B8 0%,#00000073 50%,transparent 80%)' }} />
         <nav aria-label={tr('Путь', 'Breadcrumb')} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6, fontSize: 'calc(12px * var(--fs))', fontWeight: 600 }}>
@@ -137,7 +141,7 @@ function Detail({ kind, item, show, nextUp, similar = [], compat = [], reload }:
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32 }}>
         <div style={{ flex: '999 1 480px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 28 }}>
-          <p style={{ margin: 0, fontSize: 'calc(14px * var(--fs))', lineHeight: 1.65, color: 'var(--fg2)', maxWidth: 680 }}>{overview || t('noOverview')}</p>
+          <p className="note" style={{ margin: 0, fontSize: 'calc(14px * var(--fs))', lineHeight: 1.65, color: 'var(--fg2)', maxWidth: 680 }}>{overview || t('noOverview')}</p>
 
           {show && seasons.length > 0 && (
             <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -171,7 +175,7 @@ function Detail({ kind, item, show, nextUp, similar = [], compat = [], reload }:
             <Section title={t('cast')} note={tr('Наведите — фото станет цветным', 'Hover to colorize')}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(120px,1fr))', gap: 10 }}>
                 {cast.slice(0, 12).map((a) => (
-                  <Link key={a.name + a.role} to={`/search?q=${encodeURIComponent(a.name)}&kind=people`} className="castcard" style={{ position: 'relative', aspectRatio: '3/4', borderRadius: 10, overflow: 'hidden', background: '#3A3B3E', color: '#FFFFFF' }}>
+                  <Link key={a.name + a.role} to={personLink(a)} className="castcard" style={{ position: 'relative', aspectRatio: '3/4', borderRadius: 10, overflow: 'hidden', background: '#3A3B3E', color: '#FFFFFF' }}>
                     {a.photo ? <img src={a.photo} alt="" loading="lazy" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
                       : <span className="disp" aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: '28%', textAlign: 'center', fontSize: 'calc(36px * var(--fs))', fontWeight: 600, color: '#FFFFFF59' }}>{initials(a.name)}</span>}
                     <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 50%,#000000C0)' }} />

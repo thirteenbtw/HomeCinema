@@ -119,7 +119,7 @@ const accents = [['red', '#C8232D', 'Красный', 'Red'], ['amber', '#B35F00
 
 function Look() {
   const { prefs, setPrefs } = useApp();
-  const bgHint = { live: tr('Пятна света следуют за курсором', 'Light follows the cursor'), static: tr('Цветной фон без движения', 'Colored, no motion'), off: tr('Чистый фон темы', 'Plain theme background') }[prefs.bg];
+  const bgHint = { live: tr('Точки подсвечиваются вокруг курсора', 'Dots light up around the cursor'), static: tr('Сетка точек без движения', 'Dot grid, no motion'), off: tr('Чистый фон темы', 'Plain theme background') }[prefs.bg];
   return (
     <Card id="look" title={tr('Оформление', 'Appearance')} note={tr('Применяется сразу ко всему приложению и сохраняется в профиле', 'Applies instantly and is saved to your profile')}>
       <div role="radiogroup" aria-label={tr('Тема', 'Theme')} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 10 }}>
@@ -169,6 +169,7 @@ function Look() {
       </div>
       <TextSize />
       <label className="chk"><input type="checkbox" checked={prefs.posterTint} onChange={(e) => setPrefs({ posterTint: e.target.checked })} />{tr('Подстраивать цвет фона под постер текущего фильма', 'Tint the background with the current poster')}</label>
+      <label className="chk"><input type="checkbox" checked={prefs.trailers} onChange={(e) => setPrefs({ trailers: e.target.checked })} />{tr('Автозапуск трейлеров в шапке и при наведении на постер (без звука, с YouTube)', 'Autoplay trailers in the header and on poster hover (muted, from YouTube)')}</label>
       <div className="sub">{tr('Если в системе включено «Уменьшить движение», живой фон и параллакс замирают автоматически.', 'With the system “reduce motion” setting, the live background and parallax stay still.')}</div>
     </Card>
   );
@@ -418,14 +419,15 @@ function Indexers({ data, reload }: { data: { indexers: Indexer[] | null; prefs:
   const upd = (i: number, p: Partial<Indexer>) => setList(list.map((x, j) => (j === i ? { ...x, ...p } : x)));
   return (
     <>
-      <h3 className="h2" style={{ fontSize: 'calc(14px * var(--fs))', marginTop: 4 }}>{tr('Источники поиска (Torznab)', 'Search sources (Torznab)')}</h3>
-      <div className="sub">{tr('Jackett или Prowlarr, которые вы настроили сами. В приложении нет встроенных трекеров.', 'Jackett or Prowlarr you set up yourself. No trackers are bundled.')}</div>
+      <h3 className="h2" style={{ fontSize: 'calc(14px * var(--fs))', marginTop: 4 }}>{tr('Источники поиска', 'Search sources')}</h3>
+      <div className="sub">{tr('JacRed — публичный парсер русских трекеров, как в Lampa: работает сразу, без Jackett и аккаунтов. Свои Jackett или Prowlarr добавляются как Torznab.', 'JacRed is a public parser of Russian trackers, as in Lampa: works right away, no Jackett or accounts. Your own Jackett or Prowlarr are added as Torznab.')}</div>
       {list.map((x, i) => (
         <div key={i} className="row" style={{ padding: 10, borderRadius: 12, background: 'var(--bg2)' }}>
           <input type="checkbox" checked={x.on} onChange={(e) => upd(i, { on: e.target.checked })} aria-label={tr('Включён', 'Enabled')} style={{ width: 18, height: 18, accentColor: 'var(--acc)' }} />
           <input className="inp" style={{ flex: '0 1 140px' }} value={x.name} onChange={(e) => upd(i, { name: e.target.value })} placeholder={tr('Название', 'Name')} aria-label={tr('Название', 'Name')} />
           <input className="inp mono" style={{ flex: '1 1 260px', fontSize: 'calc(12px * var(--fs))' }} value={x.url} onChange={(e) => upd(i, { url: e.target.value })} placeholder="http://127.0.0.1:9117/api/v2.0/indexers/all/results/torznab/" aria-label="URL" />
-          <input className="inp mono" style={{ flex: '0 1 160px', fontSize: 'calc(12px * var(--fs))' }} value={x.apiKey} onChange={(e) => upd(i, { apiKey: e.target.value })} placeholder="API key" aria-label="API key" />
+          <span className="tag" style={{ flex: 'none' }}>{x.kind === 'jacred' ? 'JacRed' : 'Torznab'}</span>
+          <input className="inp mono" style={{ flex: '0 1 160px', fontSize: 'calc(12px * var(--fs))' }} value={x.apiKey} onChange={(e) => upd(i, { apiKey: e.target.value })} placeholder={x.kind === 'jacred' ? tr('ключ, если нужен', 'key, if needed') : 'API key'} aria-label="API key" />
           <button className="ri" style={{ width: 36, height: 36 }} aria-label={tr('Удалить', 'Remove')} onClick={() => setList(list.filter((_, j) => j !== i))}><Icon name="trash" size={16} /></button>
         </div>
       ))}

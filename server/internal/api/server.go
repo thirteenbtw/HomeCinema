@@ -114,6 +114,8 @@ func (s *Server) routes(mux *http.ServeMux) {
 	h("GET /api/catalog/genres", s.catalogGenres)
 	h("GET /api/catalog/title/{kind}/{id}", s.catalogTitle)
 	h("GET /api/catalog/title/{kind}/{id}/torrents", s.catalogTorrents)
+	h("GET /api/catalog/person/{id}", s.catalogPerson)
+	h("GET /api/catalog/people", s.catalogPeople)
 	mux.HandleFunc("GET /api/catalog-img/{size}/{name}", s.catalogImage)
 
 	// playback

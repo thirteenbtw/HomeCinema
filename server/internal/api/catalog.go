@@ -128,3 +128,24 @@ func (s *Server) catalogImage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "public, max-age=2592000, immutable")
 	http.ServeFile(w, r, filepath.Join(s.TMDB.ImageDir, name))
 }
+
+func (s *Server) catalogPerson(w http.ResponseWriter, r *http.Request) error {
+	id, err := pathID(r, "id")
+	if err != nil {
+		return err
+	}
+	p, err := s.TMDB.Person(r.Context(), id)
+	if err != nil {
+		return catalogErr(err)
+	}
+	return writeJSON(w, p)
+}
+
+// catalogPeople lists popular people, or finds people by name (?q=).
+func (s *Server) catalogPeople(w http.ResponseWriter, r *http.Request) error {
+	people, pages, err := s.TMDB.People(r.Context(), strings.TrimSpace(r.URL.Query().Get("q")), queryInt(r, "page", 1))
+	if err != nil {
+		return catalogErr(err)
+	}
+	return writeJSON(w, map[string]any{"items": people, "page": queryInt(r, "page", 1), "pages": pages})
+}

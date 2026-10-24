@@ -81,13 +81,13 @@ export default function Devices() {
             <button className="btn btn-d" style={{ height: 40 }} disabled={!ip.trim()}>{tr('Подключить', 'Connect')}</button>
           </form>
           {err && <div className="err">{err}</div>}
-          <p style={{ margin: 0, fontSize: 'calc(12px * var(--fs))', color: 'var(--mut)' }}>{tr('DLNA и AirPlay появятся в следующих версиях. Трансляция идёт напрямую с этого ПК по локальной сети, в интернет ничего не отправляется.', 'DLNA and AirPlay come in later versions. Streams go straight from this PC over your LAN.')}</p>
+          <p className="note" style={{ margin: 0, fontSize: 'calc(12px * var(--fs))', color: 'var(--mut)' }}>{tr('DLNA и AirPlay появятся в следующих версиях. Трансляция идёт напрямую с этого ПК по локальной сети, в интернет ничего не отправляется.', 'DLNA and AirPlay come in later versions. Streams go straight from this PC over your LAN.')}</p>
         </section>
 
         {active ? <Remote s={active} /> : (
-          <aside style={{ flex: '1 1 380px', minWidth: 0, borderRadius: 24, background: 'var(--panel)', border: '1px solid var(--line)', color: '#FFFFFF', padding: 20, display: 'flex', flexDirection: 'column', gap: 12, alignSelf: 'flex-start' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'calc(12px * var(--fs))', color: '#C9CCD1' }}><Icon name="cast" size={16} />{tr('Пульт', 'Remote')}</div>
-            <div style={{ fontSize: 'calc(14px * var(--fs))', color: '#D4D7DC', lineHeight: 1.5 }}>{tr('Сейчас ничего не транслируется. Откройте фильм и нажмите «На ТВ» — здесь появится пульт.', 'Nothing is casting. Open a title and press “To TV” — the remote appears here.')}</div>
+          <aside style={{ flex: '1 1 380px', minWidth: 0, borderRadius: 24, background: 'var(--bg2)', border: '1px solid var(--line)', color: 'var(--fg)', padding: 20, display: 'flex', flexDirection: 'column', gap: 12, alignSelf: 'flex-start' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'calc(12px * var(--fs))', color: 'var(--mut2)' }}><Icon name="cast" size={16} />{tr('Пульт', 'Remote')}</div>
+            <div style={{ fontSize: 'calc(14px * var(--fs))', color: 'var(--mut2)', lineHeight: 1.5 }}>{tr('Сейчас ничего не транслируется. Откройте фильм и нажмите «На ТВ» — здесь появится пульт.', 'Nothing is casting. Open a title and press “To TV” — the remote appears here.')}</div>
           </aside>
         )}
       </div>
@@ -126,18 +126,18 @@ function Remote({ s }: { s: CastStatus }) {
     else nav(`/play/${s.fileId}?item=${s.itemId}&start=${Math.floor(s.position)}`);
   };
   return (
-    <aside aria-label={tr('Пульт', 'Remote')} style={{ flex: '1 1 380px', minWidth: 0, borderRadius: 24, background: 'var(--panel)', border: '1px solid var(--line)', color: '#FFFFFF', padding: 20, display: 'flex', flexDirection: 'column', gap: 18, alignSelf: 'flex-start' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'calc(12px * var(--fs))', color: '#C9CCD1' }}>
+    <aside aria-label={tr('Пульт', 'Remote')} style={{ flex: '1 1 380px', minWidth: 0, borderRadius: 24, background: 'var(--bg2)', border: '1px solid var(--line)', color: 'var(--fg)', padding: 20, display: 'flex', flexDirection: 'column', gap: 18, alignSelf: 'flex-start' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'calc(12px * var(--fs))', color: 'var(--mut2)' }}>
         <Icon name="cast" size={16} />{tr('Идёт на', 'Playing on')} «{s.deviceName}»
         {s.state === 'buffering' && <span className="spin" style={{ width: 14, height: 14 }} />}
       </div>
-      {s.error && <div style={{ fontSize: 'calc(12px * var(--fs))', color: '#FFB4B8' }}>{s.error}</div>}
+      {s.error && <div style={{ fontSize: 'calc(12px * var(--fs))', color: 'var(--err-fg)' }}>{s.error}</div>}
       <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
         <Art src={item?.poster} title={title || '?'} style={{ width: 72, height: 108, borderRadius: 8, flex: 'none' }} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
           <span className="disp" title={title} style={{ fontSize: `calc(${(title || '').length > 30 ? 20 : 26}px * var(--fs))`, fontWeight: 600, lineHeight: 1.05, overflowWrap: 'anywhere', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{title}</span>
-          {item?.kind === 'episode' && <span style={{ fontSize: 'calc(12px * var(--fs))', color: '#D4D7DC' }}>С{item.season}·Э{item.episode} {item.epTitle}</span>}
-          <span style={{ fontSize: 'calc(12px * var(--fs))', color: '#A9ADB4' }}>{s.audioLabel || '—'} · {tr('субтитры', 'subtitles')} {s.subLabel || tr('выкл.', 'off')}</span>
+          {item?.kind === 'episode' && <span style={{ fontSize: 'calc(12px * var(--fs))', color: 'var(--mut2)' }}>С{item.season}·Э{item.episode} {item.epTitle}</span>}
+          <span style={{ fontSize: 'calc(12px * var(--fs))', color: 'var(--mut)' }}>{s.audioLabel || '—'} · {tr('субтитры', 'subtitles')} {s.subLabel || tr('выкл.', 'off')}</span>
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -146,41 +146,41 @@ function Remote({ s }: { s: CastStatus }) {
           onMouseUp={() => { if (seekPos !== null) { act('seek', { position: seekPos }); setTimeout(() => setSeekPos(null), 1500); } }}
           onKeyUp={() => { if (seekPos !== null) { act('seek', { position: seekPos }); setTimeout(() => setSeekPos(null), 1500); } }}
           onTouchEnd={() => { if (seekPos !== null) { act('seek', { position: seekPos }); setTimeout(() => setSeekPos(null), 1500); } }}
-          style={{ width: '100%', background: `linear-gradient(90deg,var(--acc) ${pct * 100}%,#FFFFFF2E ${pct * 100}%)` }} />
-        <div className="mono" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'calc(11px * var(--fs))', color: '#A9ADB4' }}><span>{fmtTime(pos)}</span><span>{fmtTime(s.duration)}</span></div>
+          style={{ width: '100%', background: `linear-gradient(90deg,var(--acc) ${pct * 100}%,var(--line2) ${pct * 100}%)` }} />
+        <div className="mono" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'calc(11px * var(--fs))', color: 'var(--mut)' }}><span>{fmtTime(pos)}</span><span>{fmtTime(s.duration)}</span></div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 14 }}>
         <button className="rb" aria-label={tr('Назад 30 секунд', 'Back 30 seconds')} onClick={() => act('seek', { position: Math.max(0, s.position - 30) })}><Icon name="back10" /></button>
-        <button className="rb" aria-label={playing ? tr('Пауза', 'Pause') : tr('Продолжить', 'Play')} onClick={() => act(playing ? 'pause' : 'play')} style={{ width: 72, height: 72, background: '#FFFFFF', color: '#111214' }}>{playing ? <PauseGlyph size={26} /> : <PlayGlyph size={24} />}</button>
+        <button className="rb" aria-label={playing ? tr('Пауза', 'Pause') : tr('Продолжить', 'Play')} onClick={() => act(playing ? 'pause' : 'play')} style={{ width: 72, height: 72, background: 'var(--fg)', color: 'var(--bg)' }}>{playing ? <PauseGlyph size={26} /> : <PlayGlyph size={24} />}</button>
         <button className="rb" aria-label={tr('Вперёд 30 секунд', 'Forward 30 seconds')} onClick={() => act('seek', { position: s.position + 30 })}><Icon name="fwd10" /></button>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <button className="rb" aria-label={tr('Тише', 'Volume down')} style={{ width: 44, height: 44 }} onClick={() => act('volume', { level: Math.max(0, s.volume - 0.1) })}>−</button>
-        <div aria-hidden="true" style={{ flex: 1, height: 4, borderRadius: 2, background: '#FFFFFF2E' }}><div style={{ width: `${Math.round(s.volume * 100)}%`, height: 4, borderRadius: 2, background: '#FFFFFF' }} /></div>
+        <div aria-hidden="true" style={{ flex: 1, height: 4, borderRadius: 2, background: 'var(--chip)' }}><div style={{ width: `${Math.round(s.volume * 100)}%`, height: 4, borderRadius: 2, background: 'var(--fg)' }} /></div>
         <button className="rb" aria-label={tr('Громче', 'Volume up')} style={{ width: 44, height: 44 }} onClick={() => act('volume', { level: Math.min(1, s.volume + 0.1) })}>+</button>
         <button className="rb" aria-label={tr('Остановить трансляцию', 'Stop casting')} style={{ width: 44, height: 44 }} onClick={() => act('stop')}><StopGlyph /></button>
       </div>
       {file && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 'calc(11px * var(--fs))', color: '#A9ADB4' }}>{tr('Аудио', 'Audio')}
-            <select className="sel-dk" disabled={busy} value={s.audio} onChange={(e) => reload(Number(e.target.value), s.sub >= 0 ? s.sub : undefined)}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 'calc(11px * var(--fs))', color: 'var(--mut)' }}>{tr('Аудио', 'Audio')}
+            <select className="sel" disabled={busy} value={s.audio} onChange={(e) => reload(Number(e.target.value), s.sub >= 0 ? s.sub : undefined)}>
               {(file.audio || []).map((a, i) => <option key={a.index} value={a.index}>{(a.lang || '').toUpperCase() || `${tr('Дорожка', 'Track')} ${i + 1}`}{a.title ? ` (${a.title})` : ''} · {a.codec.toUpperCase()}</option>)}
             </select>
           </label>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 'calc(11px * var(--fs))', color: '#A9ADB4' }}>{tr('Субтитры', 'Subtitles')}
-            <select className="sel-dk" disabled={busy} value={s.sub} onChange={(e) => reload(s.audio >= 0 ? s.audio : undefined, Number(e.target.value))}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 'calc(11px * var(--fs))', color: 'var(--mut)' }}>{tr('Субтитры', 'Subtitles')}
+            <select className="sel" disabled={busy} value={s.sub} onChange={(e) => reload(s.audio >= 0 ? s.audio : undefined, Number(e.target.value))}>
               <option value={-1}>{tr('Выкл.', 'Off')}</option>
               {(file.subs || []).map((t, i) => <option key={i} value={i}>{(t.lang || '').toUpperCase() || `#${i + 1}`}{t.title ? ` (${t.title})` : ''} ({tr('вжечь', 'burn in')})</option>)}
             </select>
           </label>
         </div>
       )}
-      <div style={{ padding: 12, borderRadius: 12, background: '#FFFFFF12', display: 'flex', flexDirection: 'column', gap: 6, fontSize: 'calc(12px * var(--fs))' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><span style={{ color: '#A9ADB4' }}>{tr('Транскод', 'Transcode')}</span><span style={{ textAlign: 'right' }}>{s.transcode || tr('нет, напрямую', 'none, direct')}</span></div>
-        {s.encoder && <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><span style={{ color: '#A9ADB4' }}>{tr('Ускорение', 'Acceleration')}</span><span>{s.encoder.toUpperCase()}</span></div>}
-        {/tonemap|HDR/i.test(s.transcode) && <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><span style={{ color: '#A9ADB4' }}>HDR → SDR</span><span>{tr('тонмаппинг вкл.', 'tonemapping on')}</span></div>}
+      <div style={{ padding: 12, borderRadius: 12, background: 'var(--chip)', display: 'flex', flexDirection: 'column', gap: 6, fontSize: 'calc(12px * var(--fs))' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><span style={{ color: 'var(--mut)' }}>{tr('Транскод', 'Transcode')}</span><span style={{ textAlign: 'right' }}>{s.transcode || tr('нет, напрямую', 'none, direct')}</span></div>
+        {s.encoder && <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><span style={{ color: 'var(--mut)' }}>{tr('Ускорение', 'Acceleration')}</span><span>{s.encoder.toUpperCase()}</span></div>}
+        {/tonemap|HDR/i.test(s.transcode) && <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><span style={{ color: 'var(--mut)' }}>HDR → SDR</span><span>{tr('тонмаппинг вкл.', 'tonemapping on')}</span></div>}
       </div>
-      <button className="btn btn-w" style={{ justifyContent: 'center' }} onClick={continueOnPC}>{tr('Продолжить на ПК с', 'Continue on PC from')} {fmtTime(s.position)}</button>
+      <button className="btn btn-d" style={{ justifyContent: 'center' }} onClick={continueOnPC}>{tr('Продолжить на ПК с', 'Continue on PC from')} {fmtTime(s.position)}</button>
     </aside>
   );
 }

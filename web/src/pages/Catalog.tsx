@@ -4,8 +4,13 @@ import { api, ApiError, qs, type CatalogItem, type CatalogPage } from '../api';
 import { useAsync } from '../state';
 import { t, tr } from '../i18n';
 import { Art } from '../components/Art';
-import { Icon } from '../components/Icon';
 import { Section } from '../components/Shell';
+import { TopBar } from '../components/TopBar';
+import { Featured, Badge } from '../components/Featured';
+import { previewProps } from '../components/Preview';
+import { PeopleRow } from './Person';
+import { ContinueSection, useHomeData } from '../components/LibraryParts';
+import { Icon, PlayGlyph } from '../components/Icon';
 
 type Kind = 'movie' | 'tv';
 type Genre = { id: number; name: string };
@@ -23,8 +28,8 @@ const rows: Record<Kind, [string, string, string][]> = {
 
 const sorts: [string, string, string][] = [['', 'Популярные', 'Popular'], ['rating', 'По рейтингу', 'Top rated'], ['date', 'Новинки', 'Newest']];
 
-// Catalog: all of TMDB, not only the local library. A title opens a page
-// where it can be streamed or downloaded from the user's own indexers.
+// Home: the catalog of all of TMDB, not only the local library. A title opens
+// a page where it can be streamed or downloaded from the search sources.
 export default function Catalog() {
   const [params, setParams] = useSearchParams();
   const kind: Kind = params.get('kind') === 'tv' ? 'tv' : 'movie';
@@ -32,8 +37,7 @@ export default function Catalog() {
   const genre = Number(params.get('genre') || 0);
   const sort = params.get('sort') || '';
   const q = params.get('q') || '';
-  const [text, setText] = useState(q);
-  useEffect(() => setText(q), [q]);
+  const home = useHomeData();
   const genres = useAsync(() => api.get<Genre[]>(`/api/catalog/genres?kind=${kind}`), [kind]);
 
   const set = (patch: Record<string, string | number>) => {
@@ -48,54 +52,179 @@ export default function Catalog() {
       : list ? { path: `/api/catalog${qs({ kind, list })}`, title: row ? tr(row[1], row[2]) : t('catalog') }
         : null;
 
+  const searching = params.get('search') === '1' || !!q;
+  const browsing = !searching && !genre && !list && !sort;
+  useEffect(() => { if (q.length >= 2) rememberSearch(q); }, [q]);
   return (
-    <main className="main pad">
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 16 }}>
-        <div>
-          <h1 className="h1">{t('catalog')}</h1>
-          <div className="sub">{tr('Все фильмы и сериалы TMDB — смотрите сразу во время загрузки или скачивайте в библиотеку', 'Every movie and show on TMDB — watch while it downloads or save it to the library')}</div>
-        </div>
-        <form role="search" className="glass" onSubmit={(e) => { e.preventDefault(); set({ q: text.trim(), list: '', genre: '', sort: '' }); }}
-          style={{ marginLeft: 'auto', flex: '0 1 360px', display: 'flex', alignItems: 'center', gap: 10, height: 44, padding: '0 16px', borderRadius: 999, border: '1px solid var(--line)', color: 'var(--mut)' }}>
-          <Icon name="search" size={18} />
-          <input value={text} onChange={(e) => setText(e.target.value)} placeholder={tr('Найти в каталоге', 'Search the catalog')} aria-label={tr('Поиск в каталоге', 'Search the catalog')}
-            style={{ flex: 1, minWidth: 0, border: 0, outline: 'none', background: 'transparent', font: "500 calc(14px * var(--fs)) 'Inter',sans-serif", color: 'var(--fg)' }} />
-          {q && <button type="button" className="ri" style={{ width: 28, height: 28 }} aria-label={tr('Очистить', 'Clear')} onClick={() => set({ q: '' })}><Icon name="close" size={14} /></button>}
-        </form>
-      </div>
+    <main className="main">
+      <h1 className="sr">{t('home')}</h1>
+      <TopBar catalog />
+      {browsing && <Spotlight kind={kind} />}
+      {browsing && genres.data && <GenreTiles kind={kind} genres={genres.data} onPick={(id) => set({ genre: id, list: '' })} />}
+      {browsing && <ContinueSection items={home.data?.continue || []} />}
 
-      {!q && (
+      {q && <PeopleRow q={q} />}
+      {searching && !q && <SearchStart kind={kind} genres={genres.data || []} onPick={(id) => set({ genre: id, search: '' })} onQuery={(text) => set({ q: text })} />}
+
+      {!searching && !browsing && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-            <div role="group" aria-label={tr('Тип', 'Type')} style={{ display: 'flex', gap: 4 }}>
-              {([['movie', t('movies')], ['tv', t('shows')]] as [Kind, string][]).map(([k, l]) => (
-                <button key={k} className={'pill' + (kind === k ? ' on' : '')} aria-pressed={kind === k} onClick={() => set({ kind: k === 'tv' ? 'tv' : '', genre: '', list: '' })}>{l}</button>
-              ))}
-            </div>
-            {(genre > 0 || sort) && (
-              <div role="group" aria-label={t('sort')} style={{ display: 'flex', gap: 4, marginLeft: 'auto' }}>
-                {sorts.map(([k, r, e]) => <button key={k} className={'pill' + (sort === k ? ' on' : ' ghost')} aria-pressed={sort === k} onClick={() => set({ sort: k, genre: genre || '' })}>{tr(r, e)}</button>)}
-              </div>
-            )}
-          </div>
           {genres.data && genres.data.length > 0 && (
             <div className="scroll-x" role="group" aria-label={tr('Жанры', 'Genres')} style={{ gap: 6 }}>
-              <button className={'pill' + (!genre && !list ? ' on' : ' ghost')} onClick={() => set({ genre: '', list: '', sort: '' })} style={{ flex: 'none' }}>{tr('Подборки', 'Featured')}</button>
+              <button className="pill ghost" onClick={() => set({ genre: '', list: '', sort: '' })} style={{ flex: 'none' }}><Icon name="left" size={14} />{tr('Подборки', 'Featured')}</button>
               {genres.data.map((g) => (
                 <button key={g.id} className={'pill' + (genre === g.id ? ' on' : ' ghost')} aria-pressed={genre === g.id} onClick={() => set({ genre: g.id, list: '' })} style={{ flex: 'none' }}>{g.name}</button>
               ))}
+            </div>
+          )}
+          {(genre > 0 || sort) && (
+            <div role="group" aria-label={t('sort')} style={{ display: 'flex', gap: 4 }}>
+              {sorts.map(([k, r, e]) => <button key={k} className={'pill' + (sort === k ? ' on' : ' ghost')} aria-pressed={sort === k} onClick={() => set({ sort: k, genre: genre || '' })}>{tr(r, e)}</button>)}
             </div>
           )}
         </div>
       )}
 
       {genres.error && <CatalogError msg={genres.error} />}
-      {!genres.error && (grid ? <Grid key={grid.path} path={grid.path} title={grid.title} /> : rows[kind].map(([l, r, e]) => (
-        <Row key={kind + l} path={`/api/catalog${qs({ kind, list: l })}`} title={tr(r, e)} more={`/catalog${qs({ kind: kind === 'tv' ? 'tv' : '', list: l })}`} />
-      )))}
+      {!genres.error && !(searching && !q) && (grid ? <Grid key={grid.path} path={grid.path} title={grid.title} /> : rows[kind].map(([l, r, e], i) => {
+        const path = `/api/catalog${qs({ kind, list: l })}`;
+        const more = `/${qs({ kind: kind === 'tv' ? 'tv' : '', list: l })}`;
+        // The design's rhythm: a numbered top, then wide stills, then posters.
+        if (i === 0) return <TopRow key={kind + l} path={path} title={tr(r, e)} more={more} />;
+        if (i === 1) return <WideRow key={kind + l} path={path} title={tr(r, e)} more={more} tag={kind === 'tv' ? tr('Новые серии', 'New episodes') : tr('Сейчас в кино', 'In theaters')} />;
+        return <Row key={kind + l} path={path} title={tr(r, e)} more={more} />;
+      }))}
 
-      <p style={{ margin: 0, fontSize: 'calc(12px * var(--fs))', color: 'var(--mut)' }}>{tr('Данные и постеры — TMDB. Раздачи ищутся только в ваших источниках Torznab (Jackett / Prowlarr).', 'Data and posters from TMDB. Releases are searched only on your own Torznab sources (Jackett / Prowlarr).')}</p>
+      <p className="note" style={{ margin: 0, fontSize: 'calc(12px * var(--fs))', color: 'var(--mut)' }}>{tr('Данные и постеры — TMDB. Раздачи ищутся в источниках из настроек: JacRed или ваш Jackett / Prowlarr.', 'Data and posters from TMDB. Releases are searched on the sources in settings: JacRed or your own Jackett / Prowlarr.')}</p>
     </main>
+  );
+}
+
+// Spotlight: trending titles with artwork as the featured carousel.
+function Spotlight({ kind }: { kind: Kind }) {
+  const { data } = useAsync(() => api.get<CatalogPage>(`/api/catalog${qs({ kind, list: 'trending' })}`), [kind]);
+  const slides = (data?.items || []).filter((x) => x.backdrop).slice(0, 6).map((x) => ({
+    key: x.kind + x.id, name: x.title, backdrop: x.backdrop.replace('/w780/', '/w1280/'), overview: x.overview, trailer: { kind: x.kind, id: x.id },
+    meta: [x.year || '', x.kind === 'tv' ? tr('Сериал', 'Show') : tr('Фильм', 'Movie')].filter(Boolean).join(' · '),
+    badges: <>{x.rating > 0 && <Badge>★ {x.rating.toFixed(1)}</Badge>}<Badge accent>{tr('В тренде', 'Trending')}</Badge></>,
+    actions: <Link className="btn btn-w" to={`/catalog/${x.kind}/${x.id}`}><PlayGlyph />{t('watch')}</Link>,
+  }));
+  if (!data) return <div style={{ aspectRatio: '2.2 / 1', minHeight: 340, maxHeight: 'min(640px, calc(var(--vh) - 220px))', borderRadius: 20, background: 'var(--bg2)', flex: 'none' }} />;
+  return <Featured slides={slides} label={tr('В тренде', 'Trending')} />;
+}
+
+// GenreTiles: dark tiles with a still from the genre's most popular title.
+function GenreTiles({ kind, genres, onPick }: { kind: Kind; genres: Genre[]; onPick: (id: number) => void }) {
+  return (
+    <section aria-label={tr('Жанры', 'Genres')} className="scroll-x" style={{ gap: 10, flex: 'none' }}>
+      {genres.slice(0, 16).map((g) => <GenreTile key={g.id} kind={kind} g={g} onPick={onPick} />)}
+    </section>
+  );
+}
+
+function GenreTile({ kind, g, onPick }: { kind: Kind; g: Genre; onPick: (id: number) => void }) {
+  const { data } = useAsync(() => api.get<CatalogPage>(`/api/catalog${qs({ kind, genre: g.id })}`), [kind, g.id]);
+  const still = data?.items.find((x) => x.backdrop)?.backdrop;
+  return (
+    <button className="gtile" onClick={() => onPick(g.id)}>
+      {still && <img src={still} alt="" loading="lazy" />}
+      <span className="gtile-k">{t('genre')}</span>
+      <span className="disp gtile-n">{g.name}</span>
+    </button>
+  );
+}
+
+// TopRow: the week's top ten with large outlined numbers.
+function TopRow({ path, title, more }: { path: string; title: string; more: string }) {
+  const { data, error } = useAsync(() => api.get<CatalogPage>(path), [path]);
+  if (error) return null;
+  return (
+    <Section title={title} more={more}>
+      {!data ? <div style={{ height: 230, display: 'grid', placeItems: 'center' }}><span className="spin" /></div> : (
+        <div className="scroll-x" style={{ gap: 18 }}>
+          {data.items.slice(0, 10).map((x, i) => (
+            <Link key={x.kind + x.id} to={`/catalog/${x.kind}/${x.id}`} className="poster" style={{ flex: 'none', gap: 6 }} {...previewProps(x)}>
+              <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                <span className="disp topnum" aria-hidden="true">{i + 1}</span>
+                <Art className="pimg" src={x.poster} title={x.title} style={{ width: 130, aspectRatio: '2/3', borderRadius: 10, boxShadow: '0 6px 18px var(--sh)' }}
+                  label={!x.poster ? <span className="disp" style={{ position: 'absolute', left: 8, right: 8, bottom: 10, fontSize: 'calc(17px * var(--fs))', fontWeight: 600, lineHeight: 1, color: '#FFFFFF' }}>{x.title}</span> : undefined} />
+              </div>
+              <div style={{ paddingLeft: 44, maxWidth: 180 }}>
+                <div style={{ fontSize: 'calc(12px * var(--fs))', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.title}</div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </Section>
+  );
+}
+
+// WideRow: wide stills with a colored label, for what is new right now.
+function WideRow({ path, title, more, tag }: { path: string; title: string; more: string; tag: string }) {
+  const { data, error } = useAsync(() => api.get<CatalogPage>(path), [path]);
+  if (error) return null;
+  return (
+    <Section title={title} more={more}>
+      {!data ? <div style={{ height: 180, display: 'grid', placeItems: 'center' }}><span className="spin" /></div> : (
+        <div className="scroll-x" style={{ gap: 10 }}>
+          {data.items.filter((x) => x.backdrop).slice(0, 12).map((x) => (
+            <Link key={x.kind + x.id} to={`/catalog/${x.kind}/${x.id}`} className="poster" style={{ flex: 'none', width: 260 }} {...previewProps(x)}>
+              <Art className="pimg" src={x.backdrop} title={x.title} disc="wide" style={{ aspectRatio: '16/9', borderRadius: 10 }}
+                label={<>
+                  <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 40%, #000000B8)' }} />
+                  <span className="disp" style={{ position: 'absolute', left: 10, right: 10, bottom: 26, fontSize: 'calc(18px * var(--fs))', fontWeight: 600, lineHeight: 1, color: '#FFFFFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.title}</span>
+                  <span style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '4px 10px', fontSize: 'calc(10px * var(--fs))', fontWeight: 700, background: 'var(--acc)', color: '#FFFFFF' }}>{tag}{x.year ? ` · ${x.year}` : ''}</span>
+                </>} />
+            </Link>
+          ))}
+        </div>
+      )}
+    </Section>
+  );
+}
+
+const recentKey = 'hc.recentSearches';
+function recentSearches(): string[] {
+  try { return JSON.parse(localStorage.getItem(recentKey) || '[]'); } catch { return []; }
+}
+function rememberSearch(q: string) {
+  const list = [q, ...recentSearches().filter((x) => x.toLowerCase() !== q.toLowerCase())].slice(0, 8);
+  try { localStorage.setItem(recentKey, JSON.stringify(list)); } catch { /* private mode */ }
+}
+
+const duo = ['#C8232D', '#2D6FB5', '#7B3FC4', '#1F8A86', '#B4235F', '#C46A1A'];
+
+// SearchStart: what the search shows before anything is typed — recent
+// queries and big genre tiles in two-tone color.
+function SearchStart({ kind, genres, onPick, onQuery }: { kind: Kind; genres: Genre[]; onPick: (id: number) => void; onQuery: (q: string) => void }) {
+  const [recent, setRecent] = useState(recentSearches);
+  return (
+    <>
+      {recent.length > 0 && (
+        <Section title={tr('Недавние запросы', 'Recent searches')}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+            {recent.map((r) => <button key={r} className="pill" onClick={() => onQuery(r)}><Icon name="clock" size={14} />{r}</button>)}
+            <button className="pill ghost" style={{ color: 'var(--acct)' }} onClick={() => { try { localStorage.removeItem(recentKey); } catch { /* ignore */ } setRecent([]); }}>{tr('Очистить', 'Clear')}</button>
+          </div>
+        </Section>
+      )}
+      <Section title={tr('Жанры', 'Genres')}>
+        <div className="grid-duo">
+          {genres.map((g, i) => <DuoTile key={g.id} kind={kind} g={g} color={duo[i % duo.length]} onPick={onPick} />)}
+        </div>
+      </Section>
+    </>
+  );
+}
+
+function DuoTile({ kind, g, color, onPick }: { kind: Kind; g: Genre; color: string; onPick: (id: number) => void }) {
+  const { data } = useAsync(() => api.get<CatalogPage>(`/api/catalog${qs({ kind, genre: g.id })}`), [kind, g.id]);
+  const art = data?.items.find((x) => x.poster)?.poster;
+  return (
+    <button className="duo" style={{ '--duo': color } as React.CSSProperties} onClick={() => onPick(g.id)}>
+      {art && <img src={art} alt="" loading="lazy" />}
+      <span>{g.name}</span>
+    </button>
   );
 }
 
@@ -153,7 +282,7 @@ function Grid({ path, title }: { path: string; title: string }) {
 
 export function CatalogCard({ x, showKind }: { x: CatalogItem; showKind?: boolean }) {
   return (
-    <Link to={`/catalog/${x.kind}/${x.id}`} className="poster">
+    <Link to={`/catalog/${x.kind}/${x.id}`} className="poster" {...previewProps(x)}>
       <Art className="pimg" src={x.poster} title={x.title} style={{ aspectRatio: '2/3', borderRadius: 12 }}
         label={
           <>
