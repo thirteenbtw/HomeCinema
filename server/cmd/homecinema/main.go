@@ -67,8 +67,8 @@ func main() {
 		case "custom":
 			return []tmdb.Mirror{{API: st.Setting("tmdbApi", ""), Image: st.Setting("tmdbImg", "")}}
 		}
-		// CUB first, TMDB itself (with the DNS-over-HTTPS fallback) last.
-		return append(append([]tmdb.Mirror{}, tmdb.CUB...), tmdb.Mirror{})
+		// Lampa's proxies and TMDB itself (with the DNS-over-HTTPS fallback), tried at once.
+		return append(append([]tmdb.Mirror{}, tmdb.Lampa...), tmdb.Mirror{})
 	}
 	scanner := library.New(st, prober, tm, bus)
 
