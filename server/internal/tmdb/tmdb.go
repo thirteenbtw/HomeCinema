@@ -26,18 +26,20 @@ var apiBase = "https://api.themoviedb.org/3"
 var imgBase = "https://image.tmdb.org/t/p/"
 
 // Mirror is an address for the TMDB API and images. Empty fields mean TMDB
-// itself; a mirror (such as CUB, which Lampa uses) helps where TMDB is
-// blocked. The user's own TMDB key is sent through it either way.
+// itself; a mirror helps where TMDB is blocked. The user's own TMDB key is
+// sent through it either way.
 type Mirror struct {
 	API   string // e.g. https://example.org/3
 	Image string // e.g. https://example.org/t/p/
 }
 
-// CUB is the TMDB proxy run for Lampa, under its current and older domains.
-var CUB = []Mirror{
-	{API: "https://apitmdb.cub.red/3", Image: "https://imagetmdb.cub.red/t/p"},
-	{API: "https://apitmdb.cub.rip/3", Image: "https://imagetmdb.cub.rip/t/p"},
-	{API: "https://apitmdb.cub.watch/3", Image: "https://imagetmdb.cub.watch/t/p"},
+// Lampa lists the public TMDB proxies that Lampa users in Russia rely on
+// (CUB and community hosts). Several are plain HTTP, as in Lampa itself.
+var Lampa = []Mirror{
+	{API: "https://apitmdb.cub.best/3", Image: "http://imagetmdb.com/t/p"},
+	{API: "http://lampa.byskaz.ru/tmdb/api/3", Image: "http://lampa.byskaz.ru/tmdb/img/t/p"},
+	{API: "http://tmdb-api.rootu.top/3", Image: "http://nl.imagetmdb.com/t/p"},
+	{API: "http://tmdbapi.bylampa.online/3", Image: "http://pl.imagetmdb.com/t/p"},
 }
 
 var ErrNoKey = errors.New("TMDB key is not set")
@@ -46,9 +48,10 @@ type Client struct {
 	Key      func() string // v3 api key or v4 read access token
 	Lang     func() string // e.g. ru-RU
 	ImageDir string
-	Mirrors  func() []Mirror // tried in order until one answers; nil or empty = TMDB directly
+	Mirrors  func() []Mirror // all are tried until one answers; nil or empty = TMDB directly
 	http     *http.Client
-	good     atomic.Int32 // index of the mirror that answered last
+	good     atomic.Int32 // 1 + index of the mirror that answered last, 0 = none yet
+	goodImg  atomic.Int32 // the same for images, which mirrors serve separately
 }
 
 func New(imageDir string, key, lang func() string) *Client {
@@ -80,7 +83,7 @@ func (m Mirror) bases() (api, img string) {
 // order lists the mirrors starting with the one that answered last.
 func (c *Client) order() []Mirror {
 	list := c.mirrors()
-	g := int(c.good.Load())
+	g := int(c.good.Load()) - 1
 	if g <= 0 || g >= len(list) {
 		return list
 	}
@@ -90,13 +93,36 @@ func (c *Client) order() []Mirror {
 func (c *Client) remember(m Mirror) {
 	for i, x := range c.mirrors() {
 		if x == m {
-			c.good.Store(int32(i))
+			c.good.Store(int32(i + 1))
 			return
 		}
 	}
 }
 
 func (c *Client) bases() (api, img string) { return c.order()[0].bases() }
+
+// imageOrder lists the image hosts starting with the one that served last.
+func (c *Client) imageOrder() []string {
+	var list []string
+	for _, m := range c.mirrors() {
+		_, img := m.bases()
+		list = append(list, img)
+	}
+	g := int(c.goodImg.Load()) - 1
+	if g <= 0 || g >= len(list) {
+		return list
+	}
+	return append(append([]string{list[g]}, list[:g]...), list[g+1:]...)
+}
+
+func (c *Client) rememberImage(img string) {
+	for i, m := range c.mirrors() {
+		if _, x := m.bases(); x == img {
+			c.goodImg.Store(int32(i + 1))
+			return
+		}
+	}
+}
 
 // netErr describes a connection failure without the request URL, which
 // carries the API key.
@@ -105,32 +131,66 @@ func netErr(err error) error {
 	if errors.As(err, &ue) {
 		err = ue.Err
 	}
-	return fmt.Errorf("нет связи с TMDB: %v. Если TMDB заблокирован у провайдера, включите VPN или выберите зеркало TMDB в настройках", err)
+	return err
 }
 
+// get asks the mirror that answered last; if it is unreachable (or none has
+// answered yet), all the others at once, so that dead mirrors cost one
+// timeout rather than one each.
 func (c *Client) get(ctx context.Context, path string, q url.Values, out any) error {
 	key := strings.TrimSpace(c.Key())
 	if key == "" {
 		return ErrNoKey
 	}
-	if q == nil {
-		q = url.Values{}
-	}
-	var lastErr error
-	for _, m := range c.order() {
-		base, _ := m.bases()
-		err := c.getFrom(ctx, base, path, q, key, out)
-		var ne *netError
-		if errors.As(err, &ne) {
-			lastErr = err
-			continue // this address is unreachable: try the next mirror
-		}
+	list := c.order()
+	var fails []string
+	if c.good.Load() > 0 {
+		body, err := c.getFrom(ctx, list[0], path, q, key)
 		if err == nil {
-			c.remember(m)
+			return json.Unmarshal(body, out)
 		}
-		return err
+		var ne *netError
+		if !errors.As(err, &ne) {
+			return err
+		}
+		fails = append(fails, err.Error())
+		list = list[1:]
 	}
-	return lastErr
+	type answer struct {
+		m    Mirror
+		body []byte
+		err  error
+	}
+	rctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	ch := make(chan answer, len(list))
+	for _, m := range list {
+		go func(m Mirror) {
+			body, err := c.getFrom(rctx, m, path, q, key)
+			ch <- answer{m, body, err}
+		}(m)
+	}
+	var tmdbErr error // an answer from TMDB itself, such as a wrong key
+	for range list {
+		a := <-ch
+		if a.err == nil {
+			c.remember(a.m)
+			return json.Unmarshal(a.body, out)
+		}
+		var ne *netError
+		if errors.As(a.err, &ne) {
+			fails = append(fails, a.err.Error())
+		} else if tmdbErr == nil {
+			tmdbErr = a.err
+		}
+	}
+	if tmdbErr != nil {
+		return tmdbErr
+	}
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	return fmt.Errorf("нет связи с TMDB (%s). Если TMDB заблокирован у провайдера, включите VPN или укажите своё зеркало TMDB в настройках", strings.Join(fails, "; "))
 }
 
 // netError is a failure to reach an address at all (or a broken proxy
@@ -139,7 +199,8 @@ type netError struct{ err error }
 
 func (e *netError) Error() string { return e.err.Error() }
 
-func (c *Client) getFrom(ctx context.Context, base, path string, q url.Values, key string, out any) error {
+func (c *Client) getFrom(ctx context.Context, m Mirror, path string, q url.Values, key string) ([]byte, error) {
+	base, _ := m.bases()
 	q2 := url.Values{}
 	for k, v := range q {
 		q2[k] = v
@@ -152,10 +213,11 @@ func (c *Client) getFrom(ctx context.Context, base, path string, q url.Values, k
 	}
 	req.URL.RawQuery = q2.Encode()
 	req.Header.Set("Accept", "application/json")
+	host := req.URL.Host
 	for attempt := 0; ; attempt++ {
 		resp, err := c.http.Do(req)
 		if err != nil {
-			return &netError{netErr(err)}
+			return nil, &netError{fmt.Errorf("%s: %v", host, netErr(err))}
 		}
 		if resp.StatusCode == 429 && attempt < 3 {
 			resp.Body.Close()
@@ -166,16 +228,22 @@ func (c *Client) getFrom(ctx context.Context, base, path string, q url.Values, k
 		defer resp.Body.Close()
 		switch {
 		case resp.StatusCode == 401:
-			return fmt.Errorf("TMDB: неверный ключ")
-		case resp.StatusCode >= 500 || resp.StatusCode == 403:
-			return &netError{fmt.Errorf("нет связи с TMDB: %s отвечает %s", req.URL.Host, resp.Status)}
-		case resp.StatusCode != 200:
-			return fmt.Errorf("TMDB %s: %s", path, resp.Status)
+			return nil, fmt.Errorf("TMDB: неверный ключ")
+		case resp.StatusCode != 200 && resp.StatusCode != 404:
+			// proxies answer 403, 5xx or odd codes when they are broken
+			return nil, &netError{fmt.Errorf("%s отвечает %s", host, resp.Status)}
 		}
-		if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
-			return &netError{fmt.Errorf("нет связи с TMDB: %s отвечает не как TMDB", req.URL.Host)}
+		body, err := io.ReadAll(io.LimitReader(resp.Body, 16<<20))
+		if err != nil {
+			return nil, &netError{fmt.Errorf("%s: %v", host, netErr(err))}
 		}
-		return nil
+		if !json.Valid(body) {
+			return nil, &netError{fmt.Errorf("%s отвечает не как TMDB", host)}
+		}
+		if resp.StatusCode == 404 {
+			return nil, fmt.Errorf("TMDB %s: %s", path, resp.Status)
+		}
+		return body, nil
 	}
 }
 
@@ -438,8 +506,7 @@ func (c *Client) cacheImage(ctx context.Context, size, path string) string {
 		return local
 	}
 	var resp *http.Response
-	for _, m := range c.order() {
-		_, img := m.bases()
+	for _, img := range c.imageOrder() {
 		req, _ := http.NewRequestWithContext(ctx, "GET", img+size+path, nil)
 		r, err := c.http.Do(req)
 		if err != nil {
@@ -450,6 +517,7 @@ func (c *Client) cacheImage(ctx context.Context, size, path string) string {
 			continue
 		}
 		resp = r
+		c.rememberImage(img)
 		break
 	}
 	if resp == nil {

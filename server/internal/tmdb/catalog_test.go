@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func fakeTMDB(t *testing.T) *Client {
@@ -137,10 +138,37 @@ func TestMirrorFallback(t *testing.T) {
 	if _, err := c.Browse(context.Background(), BrowseQuery{Kind: "movie", List: "trending"}); err != nil {
 		t.Fatalf("fallback failed: %v", err)
 	}
-	if c.good.Load() != 2 {
+	if c.good.Load() != 3 {
 		t.Fatalf("working mirror not remembered: %d", c.good.Load())
 	}
 	if first := c.order()[0]; first.API != real {
 		t.Fatalf("order starts with %+v", first)
+	}
+}
+
+func TestMirrorsRace(t *testing.T) {
+	c := fakeTMDB(t)
+	real := apiBase
+	hang := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { <-r.Context().Done() }))
+	defer hang.Close()
+	c.Mirrors = func() []Mirror { return []Mirror{{API: hang.URL}, {API: real}} }
+	start := time.Now()
+	if _, err := c.Browse(context.Background(), BrowseQuery{Kind: "movie", List: "trending"}); err != nil {
+		t.Fatal(err)
+	}
+	if time.Since(start) > 2*time.Second {
+		t.Fatalf("waited for the hanging mirror: %v", time.Since(start))
+	}
+	if c.good.Load() != 2 {
+		t.Fatalf("good = %d", c.good.Load())
+	}
+}
+
+func TestMirrorsAllDown(t *testing.T) {
+	c := fakeTMDB(t)
+	c.Mirrors = func() []Mirror { return []Mirror{{API: "http://127.0.0.1:1/3"}, {API: "http://127.0.0.1:2/3"}} }
+	err := c.Check(context.Background())
+	if err == nil || !strings.Contains(err.Error(), "127.0.0.1:1") || !strings.Contains(err.Error(), "127.0.0.1:2") || strings.Contains(err.Error(), "key") {
+		t.Fatalf("%v", err)
 	}
 }
