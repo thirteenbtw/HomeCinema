@@ -60,7 +60,7 @@ export default function Player() {
   const lastSaved = useRef(0);
   const idleTimer = useRef<number>();
   const startAt = useRef(Number(params.get('start') || 0));
-  const opts = useRef({ audio: params.get('audio') ?? '', burn: '' });
+  const opts = useRef({ audio: params.get('audio') ?? '', burn: '', nodirect: false });
 
   const offset = pb?.mode === 'hls' ? pb.offset : 0;
   const duration = pb?.duration || video.current?.duration || 0;
@@ -72,6 +72,7 @@ export default function Player() {
     if (start > 0) q.set('start', String(Math.floor(start)));
     if (opts.current.audio !== '') q.set('audio', opts.current.audio);
     if (opts.current.burn) { q.set('sub', opts.current.burn); q.set('burn', '1'); }
+    if (opts.current.nodirect) q.set('nodirect', '1');
     try {
       const url = hash ? `/api/torrents/${hash}/play?file=${torrentFile}&${q}` : `/api/play/${fileId}?${q}`;
       const p = await api.get<Playback>(url);
@@ -108,6 +109,22 @@ export default function Player() {
     }
     return () => v.removeEventListener('loadedmetadata', onMeta);
   }, [pb]);
+
+  // The file is played as is when the browser should decode it; if it cannot
+  // after all (an error, or a picture-less video), ask for a remux instead.
+  const directFailed = useCallback(() => {
+    if (pb?.mode !== 'direct' || opts.current.nodirect) return false;
+    opts.current.nodirect = true;
+    load(video.current?.currentTime || pb.start || 0);
+    return true;
+  }, [pb, load]);
+  useEffect(() => {
+    const v = video.current;
+    if (!v || pb?.mode !== 'direct') return;
+    const check = () => { if (v.videoWidth === 0) directFailed(); };
+    v.addEventListener('loadedmetadata', check, { once: true });
+    return () => v.removeEventListener('loadedmetadata', check);
+  }, [pb, directFailed]);
 
   useEffect(() => () => { hlsRef.current?.destroy(); }, []);
   useEffect(() => () => { if (pb?.session) api.del(`/api/hls/${pb.session}`).catch(() => {}); }, [pb?.session]);
@@ -268,7 +285,7 @@ export default function Player() {
         onTimeUpdate={onTime} onPlay={() => setPaused(false)} onPause={() => { setPaused(true); saveProgress(true); }}
         onWaiting={() => setWaiting(true)} onPlaying={() => setWaiting(false)} onCanPlay={() => setWaiting(false)}
         onEnded={() => { saveProgress(true); if (next && autoNext) goNext(); }}
-        onError={() => { if (!hlsRef.current) setErr(tr('Браузер не смог открыть файл. Попробуйте внешний плеер или отправьте на ТВ.', 'The browser could not open this file.')); }}
+        onError={() => { if (!hlsRef.current && !directFailed()) setErr(tr('Браузер не смог открыть файл. Попробуйте внешний плеер или отправьте на ТВ.', 'The browser could not open this file.')); }}
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', background: '#000000' }} />
 
       <header style={{ position: 'absolute', left: 0, right: 0, top: 0, minHeight: 64, display: 'flex', alignItems: 'center', gap: 16, padding: '0 20px', background: 'linear-gradient(#000000E6,#00000000)', opacity: showUI ? 1 : 0, transition: 'opacity .3s' }}>

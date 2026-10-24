@@ -138,7 +138,7 @@ export default function Torrents() {
               <button key={k} role="tab" aria-selected={tab === k} className={'pill' + (tab === k ? ' on' : '')} onClick={() => setTab(k)}>{l}{k !== 'search' && count(k) > 0 ? ` · ${count(k)}` : ''}</button>
             ))}
           </div>
-          {tab === 'search' ? <SearchTab onAdd={(link, mode) => add({ link }, mode)} busy={busy} initial={params.get('q') || ''} /> : (
+          {tab === 'search' ? <SearchTab onAdd={(r, mode) => add({ link: r.link, magnet: r.magnet }, mode)} busy={busy} initial={params.get('q') || ''} /> : (
             <>
               {filtered.length === 0 ? (
                 <div className="empty">{tab === 'active' ? tr('Нет активных загрузок. Вставьте magnet-ссылку выше или найдите раздачу во вкладке «Поиск».', 'No active downloads. Paste a magnet link above.') : tr('Здесь пока пусто', 'Nothing here yet')}</div>
@@ -160,6 +160,7 @@ export default function Torrents() {
                               <td className="td" style={{ maxWidth: 340 }}>
                                 <div style={{ fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.name}>{r.name || r.hash}</div>
                                 <div className="sub">{r.size ? fmtSize(r.size) : '—'}{r.fileCount > 1 ? ` · ${r.fileCount} ${tr('файлов', 'files')}` : ''}{r.mode === 'stream' ? ` · ${tr('последовательно', 'sequential')}` : ''}{r.error ? ` · ${r.error}` : ''}</div>
+                                {r.status === 'meta' && r.hint && <div className="sub" style={{ color: 'var(--err-fg)', whiteSpace: 'normal' }}>{r.hint}</div>}
                               </td>
                               <td className="td" style={{ width: 180 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -281,7 +282,13 @@ function StreamPanel({ t, onCast, onKeep }: { t: TorrentInfo; onCast: (file: num
       <div className="disp" style={{ fontSize: 26, fontWeight: 600, lineHeight: 1.05, wordBreak: 'break-word' }}>{st?.fileName?.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, '') || t.name}</div>
       <div style={{ fontSize: 12, color: '#A9ADB4' }}>{[st ? fmtSize(st.size) : t.size ? fmtSize(t.size) : '', `${Math.floor(t.progress * 100)}% ${tr('загружено', 'downloaded')}`].filter(Boolean).join(' · ')}</div>
       {err && !st && <div style={{ fontSize: 12, color: '#FFB4B8' }}>{t.status === 'meta' ? tr('Получаем метаданные от пиров…', 'Fetching metadata from peers…') : err}</div>}
-      {st && !st.numPieces && <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: '#A9ADB4' }}><span className="spin" />{tr('Получаем метаданные от пиров…', 'Fetching metadata from peers…')}</div>}
+      {st && !st.numPieces && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, color: '#A9ADB4' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><span className="spin" />{tr('Получаем метаданные от пиров…', 'Fetching metadata from peers…')}</div>
+          <div className="mono">{tr('Найдено пиров', 'Peers found')}: {st.known} · {tr('подключено', 'connected')}: {st.peers} · DHT: {st.dhtNodes < 0 ? tr('выкл.', 'off') : `${st.dhtNodes} ${tr('узлов', 'nodes')}`}</div>
+          {st.hint && <div style={{ color: '#FFD28A', lineHeight: 1.45 }}>{st.hint}</div>}
+        </div>
+      )}
       {st && st.numPieces > 0 && (
         <>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -328,7 +335,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   return <div style={{ padding: 10, borderRadius: 10, background: '#FFFFFF14' }}><div style={{ fontSize: 11, color: '#A9ADB4' }}>{label}</div><div className="mono" style={{ fontSize: 15 }}>{value}</div></div>;
 }
 
-function SearchTab({ onAdd, busy, initial }: { onAdd: (link: string, mode: 'stream' | 'download') => void; busy: boolean; initial: string }) {
+function SearchTab({ onAdd, busy, initial }: { onAdd: (r: SearchResult, mode: 'stream' | 'download') => void; busy: boolean; initial: string }) {
   const [q, setQ] = useState(initial);
   const [res, setRes] = useState<SearchResult[] | null>(null);
   const [errs, setErrs] = useState<string[]>([]);
@@ -368,8 +375,8 @@ function SearchTab({ onAdd, busy, initial }: { onAdd: (link: string, mode: 'stre
                   <td className="td mono" style={{ fontSize: 12 }}>{r.seeds}</td>
                   <td className="td" style={{ fontSize: 12, color: 'var(--mut2)' }}>{r.indexer}</td>
                   <td className="td" style={{ whiteSpace: 'nowrap' }}>
-                    <button className="btn btn-r sm" style={{ height: 32, padding: '0 12px' }} disabled={busy} onClick={() => onAdd(r.link, 'stream')}><PlayGlyph size={12} />{tr('Смотреть', 'Watch')}</button>{' '}
-                    <button className="btn btn-l sm" style={{ height: 32, padding: '0 12px' }} disabled={busy} onClick={() => onAdd(r.link, 'download')} aria-label={tr('Скачать', 'Download')}><Icon name="download" size={16} /></button>
+                    <button className="btn btn-r sm" style={{ height: 32, padding: '0 12px' }} disabled={busy} onClick={() => onAdd(r, 'stream')}><PlayGlyph size={12} />{tr('Смотреть', 'Watch')}</button>{' '}
+                    <button className="btn btn-l sm" style={{ height: 32, padding: '0 12px' }} disabled={busy} onClick={() => onAdd(r, 'download')} aria-label={tr('Скачать', 'Download')}><Icon name="download" size={16} /></button>
                   </td>
                 </tr>
               ))}

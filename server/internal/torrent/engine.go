@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"log/slog"
 	"net"
@@ -22,6 +21,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/anacrolix/dht/v2"
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/anacrolix/torrent/storage"
@@ -57,13 +57,45 @@ type Settings struct {
 	ScheduleTo   int     `json:"scheduleTo"`
 	AutoImport   bool    `json:"autoImport"`
 	AcceptedRisk bool    `json:"acceptedRisk"` // legal notice acknowledged
+	// Trackers are added to every torrent (one URL per line): a bare magnet
+	// or one with dead trackers otherwise depends on DHT alone to find peers.
+	Trackers string `json:"trackers"`
+}
+
+// DefaultTrackers: large public trackers plus the retracker ISPs in Russia
+// run for local peers.
+var DefaultTrackers = []string{
+	"udp://tracker.opentrackr.org:1337/announce",
+	"udp://open.stealth.si:80/announce",
+	"udp://tracker.torrent.eu.org:451/announce",
+	"udp://exodus.desync.com:6969/announce",
+	"udp://open.demonii.com:1337/announce",
+	"udp://explodie.org:6969/announce",
+	"udp://tracker.dler.org:6969/announce",
+	"udp://tracker.qu.ax:6969/announce",
+	"udp://opentracker.io:6969/announce",
+	"http://tracker.opentrackr.org:1337/announce",
+	"https://tracker.tamersunion.org:443/announce",
+	"http://bt.t-ru.org/ann?magnet",
+	"http://retracker.local/announce",
+}
+
+// trackerList parses the Trackers setting.
+func (st Settings) trackerList() []string {
+	var out []string
+	for _, l := range strings.FieldsFunc(st.Trackers, func(r rune) bool { return r == '\n' || r == '\r' || r == ',' || r == ' ' }) {
+		if u, err := url.Parse(l); err == nil && (u.Scheme == "udp" || u.Scheme == "http" || u.Scheme == "https" || u.Scheme == "wss") {
+			out = append(out, l)
+		}
+	}
+	return out
 }
 
 func DefaultSettings(dataDir string) Settings {
 	return Settings{
 		DownloadDir: filepath.Join(dataDir, "Downloads"), Port: 42069, SeedRatio: 1.5, SeedMinutes: 0,
 		Encryption: "prefer", DHT: true, PEX: true, UPnP: true, BufferMB: 80, BufferPct: 3, MinFreeGB: 5,
-		MaxActive: 3, ScheduleFrom: -1, ScheduleTo: -1, AutoImport: true,
+		MaxActive: 3, ScheduleFrom: -1, ScheduleTo: -1, AutoImport: true, Trackers: strings.Join(DefaultTrackers, "\n"),
 	}
 }
 
@@ -89,6 +121,7 @@ type managed struct {
 	streamPos int64
 	seedFrom  time.Time
 	imported  []string
+	added     time.Time // when the torrent was added to this client run
 	err       string
 	queued    bool
 	stopped   bool // seeding limit reached
@@ -101,14 +134,15 @@ type Engine struct {
 	DataDir  string
 	CacheDir string
 
-	mu       sync.Mutex
-	cl       *torrent.Client
-	settings Settings
-	items    map[string]*managed
-	vpnDown  bool
-	diskLow  bool
-	startErr string
-	stor     storage.ClientImplCloser
+	mu        sync.Mutex
+	cl        *torrent.Client
+	settings  Settings
+	items     map[string]*managed
+	vpnDown   bool
+	diskLow   bool
+	startErr  string
+	restartAt time.Time
+	stor      storage.ClientImplCloser
 }
 
 func New(s *store.Store, bus *events.Bus, dataDir, cacheDir string) *Engine {
@@ -138,6 +172,13 @@ func (e *Engine) UpdateSettings(st Settings) error {
 		old.DHT != st.DHT || old.PEX != st.PEX || old.UPnP != st.UPnP || old.DownloadDir != st.DownloadDir {
 		return e.Restart()
 	}
+	if old.Trackers != st.Trackers {
+		e.mu.Lock()
+		for _, m := range e.items {
+			e.addTrackers(m.t)
+		}
+		e.mu.Unlock()
+	}
 	return nil
 }
 
@@ -159,8 +200,10 @@ func (e *Engine) Restart() error {
 		e.startErr = err.Error()
 		return err
 	}
+	e.restartAt = time.Now()
 	cfg := torrent.NewDefaultClientConfig()
-	cfg.Slogger = slog.New(slog.NewTextHandler(io.Discard, nil))
+	// Warnings (tracker and DHT failures) go to the app log for diagnosis.
+	cfg.Slogger = slog.New(slog.NewTextHandler(log.Writer(), &slog.HandlerOptions{Level: slog.LevelWarn}))
 	cfg.DataDir = st.DownloadDir
 	cfg.ListenPort = st.Port
 	cfg.Seed = st.SeedRatio > 0
@@ -180,9 +223,7 @@ func (e *Engine) Restart() error {
 				return errors.New(e.startErr) // kill switch: never fall back to the open interface
 			}
 		} else {
-			cfg.SetListenAddr(net.JoinHostPort(ip.String(), fmt.Sprint(st.Port)))
-			cfg.PublicIp4 = ip
-			cfg.DisableIPv6 = true
+			bindTo(cfg, ip, st.Port)
 			e.vpnDown = false
 		}
 	}
@@ -199,7 +240,12 @@ func (e *Engine) Restart() error {
 		cfg.AcceptPeerConnections = false
 	}
 	cfg.UploadRateLimiter = limiter(st.UpKBs)
-	cfg.DownloadRateLimiter = limiter(st.DownKBs)
+	if st.DownKBs > 0 {
+		cfg.DownloadRateLimiter = limiter(st.DownKBs)
+	}
+	// No download limit stays nil: an unlimited limiter with zero burst
+	// reports no tokens, and anacrolix then never opens a peer connection,
+	// so magnets hang forever waiting for metadata.
 	e.stor = storage.NewFileOpts(storage.NewFileClientOpts{ClientBaseDir: st.DownloadDir})
 	cfg.DefaultStorage = e.stor
 	cl, err := torrent.NewClient(cfg)
@@ -341,7 +387,8 @@ func (e *Engine) addLocked(row store.TorrentRow) error {
 	if err != nil {
 		return err
 	}
-	m := &managed{t: t, row: row, streams: map[*streamReader]struct{}{}, streamIdx: -1}
+	e.addTrackers(t)
+	m := &managed{t: t, row: row, streams: map[*streamReader]struct{}{}, streamIdx: -1, added: time.Now()}
 	e.items[row.InfoHash] = m
 	go func() {
 		select {
@@ -359,6 +406,37 @@ func (e *Engine) addLocked(row store.TorrentRow) error {
 	}()
 	return nil
 }
+
+func (e *Engine) addTrackers(t *torrent.Torrent) {
+	var tiers [][]string
+	for _, u := range e.settings.trackerList() {
+		tiers = append(tiers, []string{u})
+	}
+	if len(tiers) > 0 {
+		t.AddTrackers(tiers)
+	}
+}
+
+// bindTo keeps all BitTorrent traffic on one interface (the VPN): peer
+// sockets and DHT listen on its address, and tracker requests are dialled
+// from it too, so nothing leaks through the regular connection.
+func bindTo(cfg *torrent.ClientConfig, ip net.IP, port int) {
+	cfg.SetListenAddr(net.JoinHostPort(ip.String(), fmt.Sprint(port)))
+	cfg.DisableIPv6 = true
+	// A VPN address is usually private; announcing it as our public IP makes
+	// trackers and DHT nodes ignore us.
+	if !ip.IsPrivate() && !ip.IsLoopback() && !ip.IsLinkLocalUnicast() && !netCGNAT.Contains(ip) {
+		cfg.PublicIp4 = ip
+	}
+	d := &net.Dialer{LocalAddr: &net.TCPAddr{IP: ip}, Timeout: 20 * time.Second}
+	cfg.TrackerDialContext = d.DialContext
+	cfg.HTTPDialContext = d.DialContext
+	cfg.TrackerListenPacket = func(network, _ string) (net.PacketConn, error) {
+		return net.ListenPacket("udp4", net.JoinHostPort(ip.String(), "0"))
+	}
+}
+
+var _, netCGNAT, _ = net.ParseCIDR("100.64.0.0/10")
 
 // applyFilePriorities: wanted files download normally (download mode); in
 // stream mode only the reader drives priorities. Executables never download.
@@ -514,9 +592,18 @@ func (e *Engine) checkVPN() {
 		e.vpnDown = true
 		e.startErr = "VPN " + st.BindIface + " недоступен — все торренты остановлены"
 		e.mu.Unlock()
-	case err == nil && (down || !running):
+	case err == nil && down:
 		log.Printf("torrent: %s is back", st.BindIface)
 		_ = e.Restart()
+	case err == nil && !running:
+		// Failed to start for another reason (e.g. the port is taken): retry
+		// now and then, not every second.
+		e.mu.Lock()
+		retry := time.Since(e.restartAt) > 30*time.Second
+		e.mu.Unlock()
+		if retry {
+			_ = e.Restart()
+		}
 	}
 }
 
@@ -699,6 +786,8 @@ type Info struct {
 	Up        float64    `json:"up"`
 	Peers     int        `json:"peers"`
 	Seeds     int        `json:"seeds"`
+	Known     int        `json:"known"` // peers found by DHT, trackers and PEX
+	Hint      string     `json:"hint,omitempty"`
 	Ratio     float64    `json:"ratio"`
 	ETA       int64      `json:"eta"` // seconds, -1 unknown
 	Priority  int        `json:"priority"`
@@ -719,6 +808,7 @@ type Overview struct {
 	Down    float64 `json:"down"`
 	Up      float64 `json:"up"`
 	Iface   string  `json:"iface"`
+	DHT     int     `json:"dhtNodes"` // -1 = DHT off
 	Kill    bool    `json:"killSwitch"`
 	Port    int     `json:"port"`
 	Items   []Info  `json:"items"`
@@ -728,7 +818,7 @@ func (e *Engine) List() Overview {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	st := e.settings
-	ov := Overview{Running: e.cl != nil, Error: e.startErr, VPNDown: e.vpnDown, DiskLow: e.diskLow, Iface: st.BindIface, Kill: st.KillSwitch, Port: st.Port, Items: []Info{}}
+	ov := Overview{Running: e.cl != nil, Error: e.startErr, VPNDown: e.vpnDown, DiskLow: e.diskLow, Iface: st.BindIface, Kill: st.KillSwitch, Port: st.Port, Items: []Info{}, DHT: e.dhtNodesLocked()}
 	if free, err := FreeSpace(st.DownloadDir); err == nil {
 		ov.FreeGB = float64(free) / (1 << 30)
 	}
@@ -771,7 +861,9 @@ func (e *Engine) infoLocked(m *managed, withFiles bool) Info {
 	s := t.Stats()
 	info.Peers = s.ActivePeers
 	info.Seeds = s.ConnectedSeeders
+	info.Known = s.TotalPeers
 	if t.Info() == nil {
+		info.Hint = e.metaHintLocked(m, s)
 		info.Status = "meta"
 		if m.row.Paused {
 			info.Status = "paused"
@@ -877,4 +969,40 @@ func Interfaces() []IfaceInfo {
 		out = append(out, info)
 	}
 	return out
+}
+
+// dhtNodesLocked counts good DHT nodes; -1 when DHT is off.
+func (e *Engine) dhtNodesLocked() int {
+	if e.cl == nil || len(e.cl.DhtServers()) == 0 {
+		return -1
+	}
+	n := 0
+	for _, srv := range e.cl.DhtServers() {
+		if st, ok := srv.Stats().(dht.ServerStats); ok {
+			n += st.GoodNodes
+		}
+	}
+	return n
+}
+
+// metaHintLocked explains a torrent stuck waiting for metadata.
+func (e *Engine) metaHintLocked(m *managed, s torrent.TorrentStats) string {
+	wait := time.Since(m.added)
+	if wait < 20*time.Second || m.row.Paused {
+		return ""
+	}
+	dhtNodes := e.dhtNodesLocked()
+	switch {
+	case s.ActivePeers > 0:
+		return fmt.Sprintf("Подключено пиров: %d, но они не отдают описание раздачи — ждём других", s.ActivePeers)
+	case s.TotalPeers > 0:
+		return fmt.Sprintf("Найдено пиров: %d, но подключиться не удаётся. Провайдер может мешать BitTorrent: включите шифрование «Требовать» или VPN", s.TotalPeers)
+	case e.settings.Proxy != "":
+		return "Через прокси работают только HTTP-трекеры, а DHT и UDP-трекеры отключены. Добавьте .torrent-файл или раздачу с HTTP-трекером"
+	case dhtNodes == 0:
+		return "Нет связи с DHT и трекерами. Проверьте интернет и VPN; если включена привязка к интерфейсу — что выбран тот, через который идёт интернет; разрешите HomeCinema в брандмауэре Windows"
+	case wait > 90*time.Second:
+		return "Пиров не найдено: у раздачи, похоже, нет сидов. Попробуйте другую раздачу"
+	}
+	return "Ищем пиров через DHT и трекеры…"
 }

@@ -66,7 +66,7 @@ function Detail({ d }: { d: TitleResp }) {
   const add = async (r: SearchResult, mode: Mode) => {
     setBusy(r.link + mode);
     try {
-      const { hash } = await api.post<{ hash: string }>('/api/torrents', { link: r.link, mode, keep: true });
+      const { hash } = await api.post<{ hash: string }>('/api/torrents', { link: r.link, magnet: r.magnet, mode, keep: true });
       if (mode === 'download') toast(tr('Загрузка добавлена — после неё фильм появится в библиотеке', 'Download added — it lands in the library when done'));
       else if (show) nav(`/torrents?tab=stream&sel=${hash}`); // a season pack: pick the episode there
       else nav(`/play/torrent/${hash}`);

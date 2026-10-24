@@ -109,6 +109,14 @@ func (p *Prober) run(ctx context.Context, path string, f *store.File) error {
 func hdrKind(s ffStream) string {
 	for _, sd := range s.SideData {
 		if t, _ := sd["side_data_type"].(string); strings.Contains(strings.ToLower(t), "dovi") {
+			// Profiles 8.1/8.4 carry an HDR10/HLG base layer any HDR player
+			// shows correctly; profile 5 (compatibility id 0) does not.
+			switch compat, _ := sd["dv_bl_signal_compatibility_id"].(float64); compat {
+			case 1, 6:
+				return "DV HDR10"
+			case 4:
+				return "DV HLG"
+			}
 			return "DV"
 		}
 	}

@@ -357,6 +357,9 @@ function TorrentSection() {
         <label className="chk"><input type="checkbox" checked={draft.pex} onChange={(e) => set('pex', e.target.checked)} />PEX</label>
         <label className="chk"><input type="checkbox" checked={draft.upnp} onChange={(e) => set('upnp', e.target.checked)} />UPnP</label>
       </div>
+      <label className="fld">{tr('Дополнительные трекеры (добавляются ко всем раздачам, по одному в строке)', 'Extra trackers (added to every torrent, one per line)')}
+        <textarea className="inp mono" style={{ fontSize: 12, minHeight: 96, height: 'auto', padding: 10, resize: 'vertical' }} value={draft.trackers} onChange={(e) => set('trackers', e.target.value)} />
+      </label>
 
       <h3 className="h2" style={{ fontSize: 14, marginTop: 4 }}>{tr('Скорость и раздача', 'Speed & seeding')}</h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 12 }}>
