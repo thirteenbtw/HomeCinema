@@ -116,6 +116,7 @@ type managed struct {
 	t         *torrent.Torrent
 	row       store.TorrentRow
 	prevRead  int64
+	lastData  time.Time // when data last came in
 	prevWrite int64
 	down, up  float64
 	streams   map[*streamReader]struct{}
@@ -440,6 +441,10 @@ func bindTo(cfg *torrent.ClientConfig, ip net.IP, port int) {
 
 var _, netCGNAT, _ = net.ParseCIDR("100.64.0.0/10")
 
+// stallAfter is how long a downloading torrent with connected peers may
+// receive nothing before its requests are reissued.
+var stallAfter = 30 * time.Second
+
 // applyFilePriorities: wanted files download normally (download mode); in
 // stream mode only the player's reader drives priorities while it plays, and a
 // kept stream fills in the rest when nobody is watching. Downloading the whole
@@ -759,6 +764,9 @@ func (e *Engine) step() {
 	for _, m := range ms {
 		s := m.t.Stats()
 		read, written := s.BytesReadData.Int64(), s.BytesWrittenData.Int64()
+		if read > m.prevRead || m.lastData.IsZero() {
+			m.lastData = time.Now()
+		}
 		m.down = smooth(m.down, float64(read-m.prevRead))
 		m.up = smooth(m.up, float64(written-m.prevWrite))
 		m.prevRead, m.prevWrite = read, written
@@ -777,6 +785,13 @@ func (e *Engine) step() {
 		}
 		if allowDown && !complete {
 			m.t.AllowDataDownload()
+			// A request a peer silently dropped is never sent again, so the
+			// torrent hangs just short of done. Cancel and re-request.
+			if m.t.Info() != nil && s.ActivePeers > 0 && time.Since(m.lastData) > stallAfter {
+				m.t.DisallowDataDownload()
+				m.t.AllowDataDownload()
+				m.lastData = time.Now()
+			}
 		} else {
 			m.t.DisallowDataDownload()
 		}

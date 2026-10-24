@@ -38,6 +38,10 @@ func TestMagnetMetadataFromPeer(t *testing.T) {
 }
 
 func testMagnet(t *testing.T, downKBs int) {
+	// Between two clients on loopback a dropped request now and then hangs the
+	// download a chunk short of done; the engine reissues it.
+	defer func(d time.Duration) { stallAfter = d }(stallAfter)
+	stallAfter = 2 * time.Second
 	dir := t.TempDir()
 	// Seeder with a small file.
 	seedDir := filepath.Join(dir, "seed")
