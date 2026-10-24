@@ -5,6 +5,7 @@ import { setLang, tr } from '../i18n';
 import { FolderPicker } from '../components/FolderPicker';
 import { Icon } from '../components/Icon';
 import { Dots } from '../components/Dots';
+import { AppMark, Wordmark } from '../components/Brand';
 
 function Frame({ children }: { children: ReactNode }) {
   const { prefs } = useApp();
@@ -13,8 +14,8 @@ function Frame({ children }: { children: ReactNode }) {
       <Dots mode="static" intensity={100} colors={['var(--acc)', 'var(--acc)']} />
       <div className="glass" style={{ position: 'relative', width: 'min(620px,100%)', borderRadius: 24, border: '1px solid var(--line)', boxShadow: '0 30px 80px var(--sh)', padding: 28, display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ width: 32, height: 32, borderRadius: 9, background: 'var(--acc)', display: 'grid', placeItems: 'center' }}><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M8 5l11 7-11 7z" fill="#FFFFFF" /></svg></span>
-          <span className="disp" style={{ fontSize: 'calc(20px * var(--fs))', fontWeight: 600, letterSpacing: '.04em' }}>HomeCinema</span>
+          <AppMark size={34} />
+          <Wordmark hot style={{ fontSize: 'calc(30px * var(--fs))' }} />
         </div>
         {children}
       </div>
@@ -33,7 +34,7 @@ export function Login() {
   return (
     <Frame>
       <h1 className="h1">{tr('Вход', 'Sign in')}</h1>
-      <div className="sub">{tr('Медиатека защищена паролем. Его задают в настройках на ПК, где установлен HomeCinema.', 'This library is password-protected.')}</div>
+      <div className="sub">{tr('Медиатека защищена паролем. Его задают в настройках на ПК, где установлен Rivo.', 'This library is password-protected.')}</div>
       <form className="row" onSubmit={(e) => { e.preventDefault(); go(); }}>
         <input className="inp" type="password" autoFocus value={pw} onChange={(e) => setPw(e.target.value)} aria-label={tr('Пароль', 'Password')} style={{ flex: 1 }} autoComplete="current-password" />
         <button className="btn btn-r sm" disabled={!pw}>{tr('Войти', 'Sign in')}</button>
@@ -75,7 +76,7 @@ export function Setup() {
       {step === 0 && (
         <>
           <h1 className="h1">{tr('Добро пожаловать', 'Welcome')}</h1>
-          <div style={{ fontSize: 'calc(14px * var(--fs))', color: 'var(--fg2)', lineHeight: 1.6 }}>{tr('HomeCinema собирает фильмы и сериалы с дисков этого ПК в красивую библиотеку, играет их здесь и отправляет на ТВ. Всё работает внутри вашей сети, телеметрии нет.', 'HomeCinema turns the movies and shows on this PC into a library, plays them here and casts to your TV. Everything stays on your network.')}</div>
+          <div style={{ fontSize: 'calc(14px * var(--fs))', color: 'var(--fg2)', lineHeight: 1.6 }}>{tr('Rivo собирает фильмы и сериалы с дисков этого ПК в красивую библиотеку, играет их здесь и отправляет на ТВ. Всё работает внутри вашей сети, телеметрии нет.', 'HomeCinema turns the movies and shows on this PC into a library, plays them here and casts to your TV. Everything stays on your network.')}</div>
           <div role="radiogroup" aria-label={tr('Язык', 'Language')} style={{ display: 'flex', gap: 8 }}>
             {[['ru', 'Русский'], ['en', 'English']].map(([l, n]) => <button key={l} role="radio" aria-checked={lang === l} className={'pill' + (lang === l ? ' on' : '')} onClick={() => pickLang(l)}>{n}</button>)}
           </div>

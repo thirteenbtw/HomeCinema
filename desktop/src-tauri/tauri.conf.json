@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "HomeCinema",
+  "productName": "Rivo",
   "version": "0.1.0",
   "identifier": "app.homecinema.desktop",
   "build": {
@@ -10,14 +10,14 @@
     "windows": [
       {
         "label": "main",
-        "title": "HomeCinema",
+        "title": "Rivo",
         "width": 1440,
         "height": 900,
         "minWidth": 900,
         "minHeight": 600,
         "center": true,
         "dragDropEnabled": false,
-        "backgroundColor": "#0E0F12"
+        "backgroundColor": "#141A33"
       }
     ],
     "security": {

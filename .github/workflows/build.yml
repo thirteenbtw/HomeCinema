@@ -97,7 +97,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: HomeCinema-windows-installer
+          name: Rivo-windows-installer
           path: desktop/src-tauri/target/release/bundle/nsis/*.exe
 
       - name: Publish release

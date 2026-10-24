@@ -184,7 +184,7 @@ func (s *Server) middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ip := netutil.RemoteIP(r)
 		if ip == nil || !netutil.IsLAN(ip) {
-			http.Error(w, "HomeCinema доступен только из локальной сети", http.StatusForbidden)
+			http.Error(w, "Rivo доступен только из локальной сети", http.StatusForbidden)
 			return
 		}
 		if s.Cfg.Dev {

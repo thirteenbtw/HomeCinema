@@ -1,4 +1,4 @@
-//! Desktop shell for HomeCinema: starts the Go media server as a sidecar,
+//! Desktop shell for Rivo: starts the Go media server as a sidecar,
 //! shows its web UI in a native window, lives in the tray (so TVs keep
 //! streaming when the window is closed) and hands magnet links to the server.
 
@@ -166,7 +166,7 @@ pub fn run() {
             });
 
             // Tray: the server keeps running for TVs when the window is closed.
-            let open = MenuItem::with_id(app, "open", "Открыть HomeCinema", true, None::<&str>)?;
+            let open = MenuItem::with_id(app, "open", "Открыть Rivo", true, None::<&str>)?;
             let autostart_on = app.autolaunch().is_enabled().unwrap_or(false);
             let autostart = CheckMenuItem::with_id(app, "autostart", "Запускать вместе с Windows", true, autostart_on, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "Выход", true, None::<&str>)?;
@@ -174,7 +174,7 @@ pub fn run() {
             let autostart_item = autostart.clone();
             TrayIconBuilder::with_id("main")
                 .icon(app.default_window_icon().cloned().expect("icon"))
-                .tooltip("HomeCinema")
+                .tooltip("Rivo")
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(move |app, ev| match ev.id().as_ref() {
@@ -214,7 +214,7 @@ pub fn run() {
             }
         })
         .build(tauri::generate_context!())
-        .expect("error while building HomeCinema")
+        .expect("error while building Rivo")
         .run(|app, ev| {
             if let RunEvent::Exit = ev {
                 if let Some(child) = app.state::<Server>().child.lock().unwrap().take() {

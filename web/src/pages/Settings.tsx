@@ -111,11 +111,11 @@ function Card({ id, title, note, action, children }: { id: string; title: string
 }
 
 const themes = [
-  { id: 'light', ru: 'Светлая', en: 'Light', noteRu: 'Как в макете', noteEn: 'Default', bg: '#FFFFFF', line: '#E2E2DE', mut: '#C9CBCF', card: '#F2F2F0' },
-  { id: 'dark', ru: 'Тёмная', en: 'Dark', noteRu: 'Для вечера', noteEn: 'For the evening', bg: '#0E0F12', line: '#2A2D33', mut: '#4A4E56', card: '#212329' },
-  { id: 'oled', ru: 'OLED', en: 'OLED', noteRu: 'Чистый чёрный', noteEn: 'True black', bg: '#000000', line: '#1F2024', mut: '#3A3C42', card: '#17181B' },
+  { id: 'light', ru: 'Светлая', en: 'Light', noteRu: 'Лёд и лаванда', noteEn: 'Ice and lavender', bg: '#EEF1F9', line: '#CBD3EC', mut: '#B7BFD8', card: '#FFFFFF' },
+  { id: 'dark', ru: 'Тёмная', en: 'Dark', noteRu: 'Ночная синь', noteEn: 'Night blue', bg: '#141A33', line: '#353E68', mut: '#4A5383', card: '#252D51' },
+  { id: 'oled', ru: 'OLED', en: 'OLED', noteRu: 'Чистый чёрный', noteEn: 'True black', bg: '#000000', line: '#1C1F30', mut: '#353A55', card: '#151829' },
 ] as const;
-const accents = [['red', '#C8232D', 'Красный', 'Red'], ['amber', '#B35F00', 'Янтарный', 'Amber'], ['blue', '#2563EB', 'Синий', 'Blue'], ['green', '#16803C', 'Зелёный', 'Green']] as const;
+const accents = [['iris', '#5B6EE1', 'Ирис', 'Iris'], ['mint', '#23806B', 'Мята', 'Mint'], ['red', '#C8232D', 'Красный', 'Red'], ['amber', '#B35F00', 'Янтарный', 'Amber'], ['blue', '#2563EB', 'Синий', 'Blue'], ['green', '#16803C', 'Зелёный', 'Green']] as const;
 
 function Look() {
   const { prefs, setPrefs } = useApp();
@@ -485,7 +485,7 @@ function Backup() {
   const [msg, setMsg] = useState<string | null>(null);
   const restore = async (f: File) => {
     const fd = new FormData(); fd.append('file', f);
-    try { await api.post('/api/restore', fd); setMsg(tr('Копия принята. Перезапустите HomeCinema, чтобы применить её.', 'Backup accepted. Restart HomeCinema to apply it.')); } catch (e: any) { toast(e.message); }
+    try { await api.post('/api/restore', fd); setMsg(tr('Копия принята. Перезапустите Rivo, чтобы применить её.', 'Backup accepted. Restart Rivo to apply it.')); } catch (e: any) { toast(e.message); }
   };
   return (
     <>
@@ -520,7 +520,7 @@ function Diagnostics() {
           );
         })}
       </div>
-      <div className="sub">{tr('Не находится ТВ? Проверьте, что ПК и ТВ в одной подсети и что брандмауэр Windows разрешил HomeCinema в частной сети.', 'TV not found? Check both are on the same subnet and Windows Firewall allows HomeCinema on private networks.')} <Link to="/devices">{tr('Устройства', 'Devices')}</Link></div>
+      <div className="sub">{tr('Не находится ТВ? Проверьте, что ПК и ТВ в одной подсети и что брандмауэр Windows разрешил Rivo в частной сети.', 'TV not found? Check both are on the same subnet and Windows Firewall allows Rivo on private networks.')} <Link to="/devices">{tr('Устройства', 'Devices')}</Link></div>
       {logs && (
         <Modal title={tr('Журнал', 'Log')} onClose={() => setLogs(null)} wide>
           <div className="sub mono">{logs.path}</div>

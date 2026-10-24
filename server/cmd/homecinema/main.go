@@ -42,7 +42,7 @@ func main() {
 		}()
 	}
 	setupLog(cfg.DataDir)
-	log.Printf("HomeCinema %s, data in %s", version, cfg.DataDir)
+	log.Printf("Rivo %s, data in %s", version, cfg.DataDir)
 
 	dbPath := filepath.Join(cfg.DataDir, "homecinema.db")
 	applyPendingRestore(cfg.DataDir, dbPath)
