@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useApp } from '../state';
 import { tr } from '../i18n';
-import { ambientFor, paletteFor } from './Art';
+import { Backdrop, ambientFor, paletteFor } from './Art';
 import { Icon } from './Icon';
 import { useAmbient } from './Shell';
 
@@ -45,12 +45,10 @@ export function Featured({ slides, label }: { slides: Slide[]; label: string }) 
   const [sky, orb] = paletteFor(s.name);
 
   return (
-    <section aria-label={label} onMouseMove={onMove} onMouseLeave={() => setHover(false)}
-      style={{ position: 'relative', overflow: 'hidden', borderRadius: 20, background: sky, minHeight: 'clamp(340px, 42vw, 460px)', display: 'flex', alignItems: 'flex-end', transition: 'background .8s', boxShadow: '0 20px 50px var(--sh)', flex: 'none' }}>
+    <section className="hero" aria-label={label} onMouseMove={onMove} onMouseLeave={() => setHover(false)}
+      style={{ position: 'relative', overflow: 'hidden', borderRadius: 20, background: sky, minHeight: 'clamp(340px, 34vw, 540px)', display: 'flex', alignItems: 'flex-end', transition: 'background .8s', boxShadow: '0 20px 50px var(--sh)', flex: 'none' }}>
       {s.backdrop ? (
-        <div aria-hidden="true" className="lay" style={{ position: 'absolute', inset: -40, transform: mv(-10) }}>
-          <img key={s.backdrop} src={s.backdrop} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', animation: 'fadein .8s' }} />
-        </div>
+        <Backdrop src={s.backdrop} />
       ) : (
         <>
           <div aria-hidden="true" className="lay" style={{ position: 'absolute', inset: -40, transform: mv(-8) }}>

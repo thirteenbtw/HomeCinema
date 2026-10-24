@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api, fmtRuntime, fmtSize, fmtTime, type Compat, type Item, type Show, type Title } from '../api';
 import { useApp, useAsync } from '../state';
 import { t, tr } from '../i18n';
-import { Art, ambientFor, paletteFor } from '../components/Art';
+import { Art, Backdrop, ambientFor, paletteFor } from '../components/Art';
 import { Icon, PlayGlyph } from '../components/Icon';
 import { Modal } from '../components/CastDialog';
 import { Section, useAmbient } from '../components/Shell';
@@ -93,10 +93,10 @@ function Detail({ kind, item, show, nextUp, similar = [], compat = [], reload }:
   return (
     <main className="main" style={{ gap: 28 }}>
       <TopBar types={false} />
-      <section onMouseMove={onHero} onMouseLeave={() => setPar((p) => ({ ...p, hover: false }))}
-        style={{ position: 'relative', overflow: 'hidden', borderRadius: 20, background: sky, minHeight: 440, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '20px 40px 36px', color: '#FFFFFF', boxShadow: '0 20px 50px var(--sh)' }}>
+      <section className="hero" onMouseMove={onHero} onMouseLeave={() => setPar((p) => ({ ...p, hover: false }))}
+        style={{ position: 'relative', overflow: 'hidden', borderRadius: 20, background: sky, minHeight: 'clamp(380px, 34vw, 540px)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '20px 40px 36px', color: '#FFFFFF', boxShadow: '0 20px 50px var(--sh)' }}>
         {backdrop ? (
-          <div aria-hidden="true" className="lay" style={{ position: 'absolute', inset: -40, transform: mv(-10) }}><img src={backdrop} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></div>
+          <Backdrop src={backdrop} />
         ) : (
           <>
             <div aria-hidden="true" className="lay" style={{ position: 'absolute', inset: -40, transform: mv(-8) }}><div style={{ position: 'absolute', right: -60, top: -140, width: 720, height: 720, borderRadius: '50%', background: '#FFFFFF10' }} /></div>
@@ -137,7 +137,7 @@ function Detail({ kind, item, show, nextUp, similar = [], compat = [], reload }:
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32 }}>
         <div style={{ flex: '999 1 480px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 28 }}>
-          <p style={{ margin: 0, fontSize: 'calc(14px * var(--fs))', lineHeight: 1.65, color: 'var(--fg2)', maxWidth: 680 }}>{overview || t('noOverview')}</p>
+          <p className="note" style={{ margin: 0, fontSize: 'calc(14px * var(--fs))', lineHeight: 1.65, color: 'var(--fg2)', maxWidth: 680 }}>{overview || t('noOverview')}</p>
 
           {show && seasons.length > 0 && (
             <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

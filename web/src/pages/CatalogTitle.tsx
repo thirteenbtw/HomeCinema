@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api, ApiError, fmtRuntime, fmtSize, type CatalogTitle, type SearchResult } from '../api';
 import { useApp, useAsync } from '../state';
 import { t, tr } from '../i18n';
-import { Art, ambientFor, paletteFor } from '../components/Art';
+import { Art, Backdrop, ambientFor, paletteFor } from '../components/Art';
 import { Icon, PlayGlyph } from '../components/Icon';
 import { Modal } from '../components/CastDialog';
 import { Section, useAmbient } from '../components/Shell';
@@ -87,8 +87,8 @@ function Detail({ d }: { d: TitleResp }) {
 
   return (
     <main className="main" style={{ gap: 28, paddingTop: 16 }}>
-      <section style={{ position: 'relative', overflow: 'hidden', borderRadius: 20, background: sky, minHeight: 420, display: 'flex', flexDirection: 'column', padding: '20px 40px 36px', color: '#FFFFFF', boxShadow: '0 20px 50px var(--sh)' }}>
-        {x.backdrop && <img aria-hidden="true" src={x.backdrop} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
+      <section className="hero" style={{ position: 'relative', overflow: 'hidden', borderRadius: 20, background: sky, minHeight: 'clamp(380px, 34vw, 540px)', display: 'flex', flexDirection: 'column', padding: '20px 40px 36px', color: '#FFFFFF', boxShadow: '0 20px 50px var(--sh)' }}>
+        {x.backdrop && <Backdrop src={x.backdrop} />}
         <div aria-hidden="true" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg,#000000D0 0%,#00000080 55%,#00000020 85%)' }} />
         <nav aria-label={tr('Путь', 'Breadcrumb')} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6, fontSize: 'calc(12px * var(--fs))', fontWeight: 600 }}>
           <button onClick={() => nav(-1)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 28, padding: '0 10px', borderRadius: 999, background: '#FFFFFF2E', color: '#FFFFFF', border: 0, cursor: 'pointer', font: 'inherit' }}><Icon name="left" size={14} />{t('back')}</button>
@@ -119,7 +119,7 @@ function Detail({ d }: { d: TitleResp }) {
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32 }}>
         <div style={{ flex: '999 1 480px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 28 }}>
-          <p style={{ margin: 0, fontSize: 'calc(14px * var(--fs))', lineHeight: 1.65, color: 'var(--fg2)', maxWidth: 760 }}>{x.overview || tr('Описания нет.', 'No description.')}</p>
+          <p className="note" style={{ margin: 0, fontSize: 'calc(14px * var(--fs))', lineHeight: 1.65, color: 'var(--fg2)', maxWidth: 760 }}>{x.overview || tr('Описания нет.', 'No description.')}</p>
 
           <Section title={tr('Раздачи', 'Releases')} note={tr('Из источников поиска · «Смотреть» начинает показ, пока файл качается', 'From your search sources · “Watch” starts playback while the file downloads')}>
             {!d.indexers ? (

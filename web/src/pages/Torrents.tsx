@@ -151,7 +151,7 @@ export default function Torrents() {
               {filtered.length === 0 ? (
                 <div className="empty">{tab === 'active' ? tr('Нет активных загрузок. Вставьте magnet-ссылку выше или найдите раздачу во вкладке «Поиск».', 'No active downloads. Paste a magnet link above.') : tr('Здесь пока пусто', 'Nothing here yet')}</div>
               ) : (
-                <div style={{ overflowX: 'auto' }}>
+                <div className="tbl" style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', minWidth: 720, borderCollapse: 'collapse' }}>
                     <thead><tr>
                       <th className="th" style={{ minWidth: 180 }}>{tr('Название', 'Name')}</th><th className="th">{tr('Прогресс', 'Progress')}</th><th className="th">{tr('Статус', 'Status')}</th>
@@ -199,7 +199,7 @@ export default function Torrents() {
                   </table>
                 </div>
               )}
-              <p style={{ margin: 0, fontSize: 'calc(12px * var(--fs))', color: 'var(--mut)' }}>{tr('После загрузки файлы автоматически переносятся в библиотеку: Фильмы / Сериалы / Сезон N. Исполняемые файлы из раздач не запускаются.', 'Finished files move to the library automatically. Executables from torrents are never opened.')}</p>
+              <p className="note" style={{ margin: 0, fontSize: 'calc(12px * var(--fs))', color: 'var(--mut)' }}>{tr('После загрузки файлы автоматически переносятся в библиотеку: Фильмы / Сериалы / Сезон N. Исполняемые файлы из раздач не запускаются.', 'Finished files move to the library automatically. Executables from torrents are never opened.')}</p>
             </>
           )}
         </section>
@@ -370,7 +370,7 @@ function SearchTab({ onAdd, busy, initial }: { onAdd: (r: SearchResult, mode: 's
       {errs.map((e) => <div key={e} className="sub">⚠ {e}</div>)}
       {res && res.length === 0 && <div className="empty">{tr('Ничего не найдено в ваших источниках', 'Nothing found in your indexers')}</div>}
       {res && res.length > 0 && (
-        <div style={{ overflowX: 'auto' }}>
+        <div className="tbl" style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', minWidth: 720, borderCollapse: 'collapse' }}>
             <thead><tr><th className="th">{tr('Раздача', 'Release')}</th><th className="th">{tr('Качество', 'Quality')}</th><th className="th">{tr('Размер', 'Size')}</th><th className="th">{tr('Сиды', 'Seeds')}</th><th className="th">{tr('Источник', 'Indexer')}</th><th className="th" /></tr></thead>
             <tbody>

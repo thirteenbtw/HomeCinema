@@ -57,9 +57,18 @@ a{color:var(--acct);text-decoration:none}a:hover{opacity:.8}
 .dots>div{position:absolute;inset:0;background-size:22px 22px;background-position:11px 11px}
 .dots-base{background-image:radial-gradient(circle,color-mix(in srgb,var(--fg) calc(var(--dot-a) * var(--k)),transparent) 1.1px,transparent 1.7px);-webkit-mask-image:linear-gradient(180deg,#000,#0000008C);mask-image:linear-gradient(180deg,#000,#0000008C)}
 .dots-tint{--tc:color-mix(in srgb,var(--t1) 80%,var(--fg));background-image:radial-gradient(circle,var(--tc) 1.3px,transparent 1.9px);opacity:min(1,var(--k));transition:opacity .5s}
-.dots-t2{--tc:color-mix(in srgb,var(--t2) 80%,var(--fg))}
-.dots-static .dots-t1{-webkit-mask-image:radial-gradient(ellipse 45% 40% at 18% 0%,#000,#0000);mask-image:radial-gradient(ellipse 45% 40% at 18% 0%,#000,#0000)}
-.dots-static .dots-t2{opacity:calc(.7 * min(1,var(--k)));-webkit-mask-image:radial-gradient(ellipse 40% 45% at 100% 80%,#000,#0000);mask-image:radial-gradient(ellipse 40% 45% at 100% 80%,#000,#0000)}
+/* Loose text on the page gets a background-colored halo so the dots never run
+   through it; inside cards and panels (which have their own fill) it is off. */
+.main{--surface:var(--bg)}
+.card,.glass,.modal,aside,table,.empty,.hero{--surface:transparent}
+.main :is(.h1,.h2,.sub,.note){width:fit-content;max-width:100%;background:var(--surface);box-shadow:0 0 0 6px var(--surface);border-radius:4px}
+.main .poster>div:last-child{background:var(--surface);box-shadow:0 0 0 6px var(--surface);border-radius:4px}
+.main .pill.ghost,.main .sn{background:var(--surface)}
+.main .sn:hover{background:var(--chip)}
+.main .sn.on{background:var(--fg)}
+.tbl{background:var(--bg);border-radius:12px}
+/* whole 16:9 still on the right of a hero, fading into its blurred copy */
+.bd-img{position:absolute;top:0;right:0;height:100%;aspect-ratio:16/9;object-fit:cover;animation:fadein .8s;-webkit-mask-image:linear-gradient(90deg,#0000 0%,#000 32%);mask-image:linear-gradient(90deg,#0000 0%,#000 32%)}
 .dots-live .dots-t1{opacity:calc(var(--glow) * min(1,var(--k)));-webkit-mask-image:radial-gradient(circle 240px at var(--mx) var(--my),#000,#0000);mask-image:radial-gradient(circle 240px at var(--mx) var(--my),#000,#0000)}
 .glass{background:var(--input);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 .card{padding:20px;border-radius:16px;border:1px solid var(--line);display:flex;flex-direction:column;gap:14px}

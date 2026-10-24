@@ -81,7 +81,7 @@ export default function Devices() {
             <button className="btn btn-d" style={{ height: 40 }} disabled={!ip.trim()}>{tr('Подключить', 'Connect')}</button>
           </form>
           {err && <div className="err">{err}</div>}
-          <p style={{ margin: 0, fontSize: 'calc(12px * var(--fs))', color: 'var(--mut)' }}>{tr('DLNA и AirPlay появятся в следующих версиях. Трансляция идёт напрямую с этого ПК по локальной сети, в интернет ничего не отправляется.', 'DLNA and AirPlay come in later versions. Streams go straight from this PC over your LAN.')}</p>
+          <p className="note" style={{ margin: 0, fontSize: 'calc(12px * var(--fs))', color: 'var(--mut)' }}>{tr('DLNA и AirPlay появятся в следующих версиях. Трансляция идёт напрямую с этого ПК по локальной сети, в интернет ничего не отправляется.', 'DLNA and AirPlay come in later versions. Streams go straight from this PC over your LAN.')}</p>
         </section>
 
         {active ? <Remote s={active} /> : (

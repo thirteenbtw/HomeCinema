@@ -1,8 +1,8 @@
 import { useEffect, useRef, type CSSProperties } from 'react';
 
 // Dotted background: a quiet grid of dots over the theme color. "live" lights
-// the dots around the cursor in the accent (or poster) color; "static" keeps
-// two fixed tinted patches. Intensity scales how visible the dots are.
+// the dots around the cursor in the accent (or poster) color; "static" is the
+// plain grid. Intensity scales how visible the dots are.
 export function Dots({ mode, intensity, colors }: { mode: 'live' | 'static'; intensity: number; colors: string[] }) {
   const ref = useRef<HTMLDivElement>(null);
   const live = mode === 'live' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -33,8 +33,7 @@ export function Dots({ mode, intensity, colors }: { mode: 'live' | 'static'; int
   return (
     <div ref={ref} aria-hidden="true" className={`dots ${live ? 'dots-live' : 'dots-static'}`} style={style}>
       <div className="dots-base" />
-      <div className="dots-tint dots-t1" />
-      {!live && <div className="dots-tint dots-t2" />}
+      {live && <div className="dots-tint dots-t1" />}
     </div>
   );
 }
