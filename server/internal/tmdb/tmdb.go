@@ -31,13 +31,15 @@ type Mirror struct {
 	Image string // e.g. https://example.org/t/p/
 }
 
-var ErrNoKey = errors.New("TMDB key is not set")
+var ErrNoKey = errors.New("ключ источника данных не задан")
 
 type Client struct {
 	Key      func() string // v3 api key or v4 read access token
 	Lang     func() string // e.g. ru-RU
 	ImageDir string
 	Mirror   func() Mirror // optional
+	Provider func() string // "kinopoisk" or "tmdb"
+	KPKey    func() string // Kinopoisk API key
 	http     *http.Client
 }
 
@@ -110,6 +112,10 @@ func (c *Client) get(ctx context.Context, path string, q url.Values, out any) er
 
 // Check verifies that the configured key works.
 func (c *Client) Check(ctx context.Context) error {
+	if c.kp() {
+		var f kpFilm
+		return c.kpGet(ctx, "/api/v2.2/films/301", nil, &f)
+	}
 	var v map[string]any
 	return c.get(ctx, "/configuration", nil, &v)
 }
@@ -150,6 +156,9 @@ func (r SearchResult) Year() int {
 // Search returns candidates for kind "movie" or "tv". Used by the matcher and
 // by the "fix wrong match" dialog.
 func (c *Client) Search(ctx context.Context, kind, query string, year int) ([]SearchResult, error) {
+	if c.kp() {
+		return c.kpSearch(ctx, kind, query, year)
+	}
 	q := url.Values{"query": {query}, "language": {c.Lang()}, "include_adult": {"false"}}
 	if year > 0 {
 		if kind == "movie" {
@@ -266,6 +275,9 @@ type details struct {
 
 // Details loads full metadata for a movie or a show and caches its images.
 func (c *Client) Details(ctx context.Context, kind string, id int64) (store.Meta, error) {
+	if c.kp() {
+		return c.kpDetails(ctx, id)
+	}
 	var d details
 	extra := "credits,release_dates"
 	if kind == "tv" {
@@ -317,6 +329,9 @@ func (c *Client) Details(ctx context.Context, kind string, id int64) (store.Meta
 
 // Episode loads an episode title and description.
 func (c *Client) Episode(ctx context.Context, showID int64, season, episode int) (store.Meta, error) {
+	if c.kp() {
+		return c.kpEpisode(ctx, showID, season, episode)
+	}
 	var e struct {
 		Name     string  `json:"name"`
 		Overview string  `json:"overview"`
@@ -360,14 +375,30 @@ func (c *Client) cacheImage(ctx context.Context, size, path string) string {
 		return ""
 	}
 	h := sha1.Sum([]byte(size + path))
-	name := hex.EncodeToString(h[:8]) + filepath.Ext(path)
+	_, img := c.bases()
+	return c.fetchImage(ctx, img+size+path, hex.EncodeToString(h[:8])+filepath.Ext(path))
+}
+
+// cacheURL caches an image given by its full address (Kinopoisk).
+func (c *Client) cacheURL(ctx context.Context, raw string) string {
+	if raw == "" {
+		return ""
+	}
+	h := sha1.Sum([]byte(raw))
+	ext := filepath.Ext(raw)
+	if len(ext) > 5 || ext == "" {
+		ext = ".jpg"
+	}
+	return c.fetchImage(ctx, raw, hex.EncodeToString(h[:8])+ext)
+}
+
+func (c *Client) fetchImage(ctx context.Context, src, name string) string {
 	dst := filepath.Join(c.ImageDir, name)
 	local := "/api/images/" + name
 	if _, err := os.Stat(dst); err == nil {
 		return local
 	}
-	_, img := c.bases()
-	req, _ := http.NewRequestWithContext(ctx, "GET", img+size+path, nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", src, nil)
 	resp, err := c.http.Do(req)
 	if err != nil {
 		return ""

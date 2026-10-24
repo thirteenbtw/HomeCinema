@@ -45,7 +45,7 @@ export function Login() {
   );
 }
 
-// First run (FR-21): language, library folders, TMDB key.
+// First run (FR-21): language, library folders, Kinopoisk key.
 export function Setup() {
   const { reload, state } = useApp();
   const [step, setStep] = useState(0);
@@ -64,7 +64,7 @@ export function Setup() {
   const finish = async (withKey: boolean) => {
     setErr(null); setBusy(true);
     try {
-      if (withKey && key.trim()) await api.put('/api/settings', { tmdbKey: key.trim() });
+      if (withKey && key.trim()) await api.put('/api/settings', { metaProvider: 'kinopoisk', kpKey: key.trim() });
       await api.put('/api/settings', { setupDone: '1' });
       await reload();
     } catch (e: any) { setErr(e.message); } finally { setBusy(false); }
@@ -104,10 +104,10 @@ export function Setup() {
         <>
           <h1 className="h1">{tr('Постеры и описания', 'Posters and descriptions')}</h1>
           <div style={{ fontSize: 14, color: 'var(--fg2)', lineHeight: 1.6 }}>
-            {tr('Обложки, описания и актёров даёт TMDB. Нужен бесплатный ключ API: зарегистрируйтесь на ', 'Artwork and descriptions come from TMDB. Get a free API key at ')}
-            <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noreferrer">themoviedb.org</a>{tr(' и вставьте ключ ниже. Можно сделать это позже в настройках.', ' and paste it below. You can do this later in Settings.')}
+            {tr('Обложки, описания и актёров даёт Кинопоиск — работает без VPN. Нужен бесплатный ключ API: зарегистрируйтесь на ', 'Artwork and descriptions come from Kinopoisk. Get a free API key at ')}
+            <a href="https://kinopoiskapiunofficial.tech/signup" target="_blank" rel="noreferrer">kinopoiskapiunofficial.tech</a>{tr(' и вставьте ключ ниже. Можно сделать это позже в настройках.', ' and paste it below. You can do this later in Settings.')}
           </div>
-          <input className="inp mono" value={key} onChange={(e) => setKey(e.target.value)} placeholder="API key v3 / токен v4" aria-label={tr('Ключ TMDB', 'TMDB key')} autoComplete="off" />
+          <input className="inp mono" value={key} onChange={(e) => setKey(e.target.value)} placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" aria-label={tr('Ключ API Кинопоиска', 'Kinopoisk API key')} autoComplete="off" />
           {err && <div className="err">{err}</div>}
           <div className="row">
             <button className="btn btn-r" disabled={busy || !key.trim()} onClick={() => finish(true)}>{busy ? <span className="spin" /> : tr('Проверить и готово', 'Verify and finish')}</button>

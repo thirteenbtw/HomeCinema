@@ -321,6 +321,13 @@ func (s *Store) PendingMetadata(limit int) ([]Pending, error) {
 }
 
 // ResetUnmatched queues items that previously failed (e.g. no API key yet) for another try.
+// ResetAllMatches queues every title for matching again, e.g. after the
+// metadata provider changed and the stored ids belong to the old one.
+func (s *Store) ResetAllMatches() {
+	_, _ = s.Exec(`UPDATE media_items SET matched=0`)
+	_, _ = s.Exec(`UPDATE shows SET matched=0`)
+}
+
 func (s *Store) ResetUnmatched() {
 	_, _ = s.Exec(`UPDATE media_items SET matched=0 WHERE matched=2`)
 	_, _ = s.Exec(`UPDATE shows SET matched=0 WHERE matched=2`)

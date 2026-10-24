@@ -9,13 +9,13 @@ import { Modal } from '../components/CastDialog';
 import { Section, useAmbient } from '../components/Shell';
 import { CatalogCard } from './Catalog';
 
-type TitleResp = { title: CatalogTitle; library: { kind: 'movie' | 'show'; id: number } | null; indexers: boolean };
+type TitleResp = { provider: string; link: string; title: CatalogTitle; library: { kind: 'movie' | 'show'; id: number } | null; indexers: boolean };
 type TorrentsResp = { results: SearchResult[]; errors: string[]; loose: boolean };
 type Mode = 'stream' | 'download';
 
 const qualities = ['', '2160p', '1080p', '720p'];
 
-// A catalog title: TMDB details plus releases from the user's own indexers,
+// A catalog title: provider details plus releases from the user's own indexers,
 // each one either streamed right away (sequential download) or downloaded.
 export default function CatalogTitlePage() {
   const { kind = 'movie', id } = useParams();
@@ -23,7 +23,7 @@ export default function CatalogTitlePage() {
   if (error) {
     return (
       <main className="main pad">
-        <div className="empty">{error}{error.includes('TMDB') && <Link className="btn btn-l sm" to="/settings">{tr('Открыть настройки', 'Open settings')}</Link>}</div>
+        <div className="empty">{error}{/TMDB|Кинопоиск|ключ/.test(error) && <Link className="btn btn-l sm" to="/settings">{tr('Открыть настройки', 'Open settings')}</Link>}</div>
       </main>
     );
   }
@@ -103,7 +103,7 @@ function Detail({ d }: { d: TitleResp }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 13, fontWeight: 600 }}>
               {meta}
               {x.cert && <span style={{ fontSize: 11, padding: '2px 7px', border: '1px solid #FFFFFF66', borderRadius: 4 }}>{x.cert}</span>}
-              {x.rating > 0 && <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 4, background: '#01B4E4', color: '#06222C' }}>TMDB {x.rating.toFixed(1)}</span>}
+              {x.rating > 0 && <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 4, ...(d.provider === 'TMDB' ? { background: '#01B4E4', color: '#06222C' } : { background: '#FF6600', color: '#FFFFFF' }) }}>{d.provider === 'TMDB' ? 'TMDB' : 'КП'} {x.rating.toFixed(1)}</span>}
               {show && seasons.length > 0 && <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 4, background: '#FFFFFF2E' }}>{seasons.length} {tr('сез.', 'seasons')}</span>}
             </div>
             {x.tagline && <div style={{ fontSize: 14, fontStyle: 'italic', color: '#D4D7DC' }}>{x.tagline}</div>}
@@ -190,7 +190,7 @@ function Detail({ d }: { d: TitleResp }) {
           )}
 
           {x.related.length > 0 && (
-            <Section title={tr('Похожие', 'More like this')} note={tr('Рекомендации TMDB', 'TMDB recommendations')}>
+            <Section title={tr('Похожие', 'More like this')} note={tr(`Рекомендации: ${d.provider}`, `Recommended by ${d.provider}`)}>
               <div className="scroll-x">
                 {x.related.map((r) => <div key={r.kind + r.id} style={{ width: 140, flex: 'none' }}><CatalogCard x={r} /></div>)}
               </div>
@@ -209,7 +209,7 @@ function Detail({ d }: { d: TitleResp }) {
             <div key={k}><div className="sub">{k}</div><div style={{ fontWeight: 600 }}>{v}</div></div>
           ))}
           {x.imdbId && <a href={`https://www.imdb.com/title/${x.imdbId}/`} target="_blank" rel="noreferrer" style={{ fontWeight: 600 }}>IMDb ↗</a>}
-          <a href={`https://www.themoviedb.org/${x.kind}/${x.id}`} target="_blank" rel="noreferrer" style={{ fontWeight: 600 }}>TMDB ↗</a>
+          <a href={d.link} target="_blank" rel="noreferrer" style={{ fontWeight: 600 }}>{d.provider} ↗</a>
         </aside>
       </div>
 

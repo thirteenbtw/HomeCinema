@@ -108,9 +108,10 @@ func (s *Server) routes(mux *http.ServeMux) {
 	h("POST /api/shows/{id}/match", s.matchShow)
 	mux.HandleFunc("GET /api/images/{name}", s.image)
 
-	// catalog (all of TMDB)
+	// catalog (all of the metadata provider: Kinopoisk or TMDB)
 	h("GET /api/catalog", s.catalogBrowse)
 	h("GET /api/catalog/search", s.catalogSearch)
+	h("GET /api/catalog/lists", s.catalogLists)
 	h("GET /api/catalog/genres", s.catalogGenres)
 	h("GET /api/catalog/title/{kind}/{id}", s.catalogTitle)
 	h("GET /api/catalog/title/{kind}/{id}/torrents", s.catalogTorrents)

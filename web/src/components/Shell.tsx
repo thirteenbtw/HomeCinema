@@ -4,6 +4,7 @@ import { useApp } from '../state';
 import { t, tr } from '../i18n';
 import { Icon } from './Icon';
 import { CastDialog } from './CastDialog';
+import { installDragScroll } from './dragScroll';
 
 // Pages tint the ambient background (e.g. with the featured poster's colors).
 const AmbientCtx = createContext<(colors: string[] | null) => void>(() => {});
@@ -23,6 +24,7 @@ export function Shell() {
   const bgOn = prefs.bg !== 'off';
 
   useEffect(() => () => cancelAnimationFrame(raf.current), []);
+  useEffect(() => installDragScroll(), []);
   useEffect(() => { window.scrollTo(0, 0); }, [loc.pathname]);
 
   const onMove = (e: React.MouseEvent) => {

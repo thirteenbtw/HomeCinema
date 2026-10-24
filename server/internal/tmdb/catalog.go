@@ -137,6 +137,28 @@ func toPage(r listResp, kind string) CatalogPage {
 	return p
 }
 
+// List is one catalog row.
+type List struct {
+	Key   string `json:"key"`
+	Title string `json:"title"`
+}
+
+var tmdbLists = map[string][]List{
+	"movie": {{"trending", "Тренды недели"}, {"now_playing", "Сейчас в кино"}, {"popular", "Популярные"}, {"top_rated", "Лучшие за всё время"}, {"upcoming", "Скоро"}},
+	"tv":    {{"trending", "Тренды недели"}, {"on_the_air", "Сейчас выходят"}, {"popular", "Популярные"}, {"top_rated", "Лучшие за всё время"}},
+}
+
+// Lists returns the catalog rows of the active provider.
+func (c *Client) Lists(kind string) []List {
+	if kind != "tv" {
+		kind = "movie"
+	}
+	if c.kp() {
+		return kpLists[kind]
+	}
+	return tmdbLists[kind]
+}
+
 // Lists that the catalog can show, per kind.
 var lists = map[string]map[string]string{
 	"movie": {"trending": "/trending/movie/week", "popular": "/movie/popular", "top_rated": "/movie/top_rated", "now_playing": "/movie/now_playing", "upcoming": "/movie/upcoming"},
@@ -156,6 +178,9 @@ type BrowseQuery struct {
 func (c *Client) Browse(ctx context.Context, q BrowseQuery) (CatalogPage, error) {
 	if q.Kind != "tv" {
 		q.Kind = "movie"
+	}
+	if c.kp() {
+		return c.kpBrowse(ctx, q)
 	}
 	vals := url.Values{"language": {c.Lang()}, "page": {strconv.Itoa(max(q.Page, 1))}, "region": {region(c.Lang())}}
 	path, ok := lists[q.Kind][q.List]
@@ -205,6 +230,9 @@ func (c *Client) Browse(ctx context.Context, q BrowseQuery) (CatalogPage, error)
 
 // SearchCatalog finds movies and shows by title across all of TMDB.
 func (c *Client) SearchCatalog(ctx context.Context, query string, page int) (CatalogPage, error) {
+	if c.kp() {
+		return c.kpSearchCatalog(ctx, query, page)
+	}
 	vals := url.Values{"query": {query}, "language": {c.Lang()}, "page": {strconv.Itoa(max(page, 1))}, "include_adult": {"false"}}
 	var r listResp
 	if err := c.getCached(ctx, "/search/multi", vals, &r); err != nil {
@@ -215,6 +243,9 @@ func (c *Client) SearchCatalog(ctx context.Context, query string, page int) (Cat
 
 // Genres lists TMDB genres for a kind in the metadata language.
 func (c *Client) Genres(ctx context.Context, kind string) ([]Genre, error) {
+	if c.kp() {
+		return c.kpGenreList(ctx)
+	}
 	if kind != "tv" {
 		kind = "movie"
 	}
@@ -235,6 +266,9 @@ func (c *Client) Genres(ctx context.Context, kind string) ([]Genre, error) {
 
 // Title loads full catalog details for a movie or a show.
 func (c *Client) Title(ctx context.Context, kind string, id int64) (CatalogTitle, error) {
+	if c.kp() {
+		return c.kpTitle(ctx, kind, id)
+	}
 	if kind != "tv" {
 		kind = "movie"
 	}
@@ -320,6 +354,17 @@ var imageSizes = map[string]bool{"w185": true, "w342": true, "w500": true, "w780
 // CatalogImage downloads (once) and returns the local file name of a TMDB
 // image requested through the catalog proxy.
 func (c *Client) CatalogImage(ctx context.Context, size, path string) (string, error) {
+	if size == "u" {
+		raw, ok := decodeProxyURL(strings.TrimPrefix(path, "/"))
+		if !ok {
+			return "", fmt.Errorf("bad image")
+		}
+		local := c.cacheURL(ctx, raw)
+		if local == "" {
+			return "", fmt.Errorf("image unavailable")
+		}
+		return strings.TrimPrefix(local, "/api/images/"), nil
+	}
 	if !imageSizes[size] || !reImage.MatchString(path) {
 		return "", fmt.Errorf("bad image")
 	}
@@ -349,10 +394,14 @@ var (
 	cache   = map[string]cached{}
 )
 
-const cacheTTL = 30 * time.Minute
+// Long enough to stay within Kinopoisk's daily request quota.
+const cacheTTL = 6 * time.Hour
 
 func (c *Client) getCached(ctx context.Context, path string, q url.Values, out any) error {
-	key := path + "?" + q.Encode()
+	return c.cachedCall(path+"?"+q.Encode(), out, func(raw *json.RawMessage) error { return c.get(ctx, path, q, raw) })
+}
+
+func (c *Client) cachedCall(key string, out any, fetch func(raw *json.RawMessage) error) error {
 	cacheMu.Lock()
 	e, ok := cache[key]
 	cacheMu.Unlock()
@@ -360,17 +409,17 @@ func (c *Client) getCached(ctx context.Context, path string, q url.Values, out a
 		return json.Unmarshal(e.body, out)
 	}
 	var raw json.RawMessage
-	if err := c.get(ctx, path, q, &raw); err != nil {
+	if err := fetch(&raw); err != nil {
 		return err
 	}
 	cacheMu.Lock()
-	if len(cache) > 2000 {
+	if len(cache) > 3000 {
 		for k, v := range cache {
 			if time.Since(v.at) >= cacheTTL {
 				delete(cache, k)
 			}
 		}
-		if len(cache) > 2000 {
+		if len(cache) > 3000 {
 			cache = map[string]cached{}
 		}
 	}

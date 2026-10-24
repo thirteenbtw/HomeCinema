@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -14,6 +15,9 @@ import (
 // the user's Torznab indexers, either to download or to watch while it loads.
 
 func catalogErr(err error) error {
+	if errors.Is(err, tmdb.ErrNoKPKey) {
+		return httpError{http.StatusPreconditionFailed, err.Error()}
+	}
 	if errors.Is(err, tmdb.ErrNoKey) {
 		return httpError{http.StatusPreconditionFailed, "для каталога нужен ключ TMDB — добавьте его в настройках"}
 	}
@@ -37,6 +41,10 @@ func (s *Server) catalogBrowse(w http.ResponseWriter, r *http.Request) error {
 		return catalogErr(err)
 	}
 	return writeJSON(w, page)
+}
+
+func (s *Server) catalogLists(w http.ResponseWriter, r *http.Request) error {
+	return writeJSON(w, map[string]any{"provider": s.TMDB.ProviderName(), "lists": s.TMDB.Lists(catalogKind(r, "kind"))})
 }
 
 func (s *Server) catalogSearch(w http.ResponseWriter, r *http.Request) error {
@@ -74,7 +82,13 @@ func (s *Server) catalogTitle(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return catalogErr(err)
 	}
+	link := fmt.Sprintf("https://www.themoviedb.org/%s/%d", kind, id)
+	if s.TMDB.ProviderName() != "TMDB" {
+		link = fmt.Sprintf("https://www.kinopoisk.ru/film/%d/", id)
+	}
 	return writeJSON(w, map[string]any{
+		"provider": s.TMDB.ProviderName(),
+		"link":     link,
 		"title":    t,
 		"library":  s.inLibrary(kind, id),
 		"indexers": len(s.Torrents.Indexers()) > 0,

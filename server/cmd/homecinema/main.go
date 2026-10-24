@@ -60,6 +60,19 @@ func main() {
 	tm := tmdb.New(filepath.Join(cfg.DataDir, "images"),
 		func() string { return st.Setting("tmdbKey", "") },
 		func() string { return st.Setting("metaLang", "ru-RU") })
+	if st.Setting("metaProvider", "") == "" {
+		// Kinopoisk is the default; installs whose library already matched
+		// through TMDB keep TMDB so their stored ids stay valid.
+		provider := "kinopoisk"
+		var n int
+		_ = st.DB.QueryRow(`SELECT COUNT(*) FROM media_items WHERE matched IN (1,3)`).Scan(&n)
+		if n > 0 && st.Setting("tmdbKey", "") != "" {
+			provider = "tmdb"
+		}
+		_ = st.SetSetting("metaProvider", provider)
+	}
+	tm.Provider = func() string { return st.Setting("metaProvider", "kinopoisk") }
+	tm.KPKey = func() string { return st.Setting("kpKey", "") }
 	tm.Mirror = func() tmdb.Mirror {
 		return tmdb.Mirror{API: st.Setting("tmdbApi", ""), Image: st.Setting("tmdbImg", "")}
 	}
