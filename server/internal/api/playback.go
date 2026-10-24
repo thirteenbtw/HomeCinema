@@ -13,6 +13,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/thirteenbtw/homecinema/server/internal/netutil"
 	"github.com/thirteenbtw/homecinema/server/internal/probe"
@@ -157,13 +159,19 @@ func (s *Server) compat(it *store.Item) []compatRow {
 		dd := s.decide(f, audio, dev.Caps, quality, true)
 		mode := dd.Summary
 		if !dd.Direct && dd.CopyVideo {
-			mode = "Почти напрямую: " + strings.ToLower(dd.Summary)
+			mode = "Почти напрямую: " + lowerFirst(dd.Summary)
 		} else if !dd.Direct {
 			mode = "Транскод: " + dd.Summary
 		}
 		rows = append(rows, compatRow{dev.Name, mode, statusOf(dd)})
 	}
 	return rows
+}
+
+// lowerFirst lowercases only the first letter, so codec names such as AAC keep their case.
+func lowerFirst(s string) string {
+	r, n := utf8.DecodeRuneInString(s)
+	return string(unicode.ToLower(r)) + s[n:]
 }
 
 func statusOf(d decision) string {

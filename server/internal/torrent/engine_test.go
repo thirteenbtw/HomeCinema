@@ -38,6 +38,10 @@ func TestMagnetMetadataFromPeer(t *testing.T) {
 }
 
 func testMagnet(t *testing.T, downKBs int) {
+	// Between two clients on loopback a dropped request now and then hangs the
+	// download a chunk short of done; the engine reissues it.
+	defer func(d time.Duration) { stallAfter = d }(stallAfter)
+	stallAfter = 2 * time.Second
 	dir := t.TempDir()
 	// Seeder with a small file.
 	seedDir := filepath.Join(dir, "seed")
@@ -80,6 +84,7 @@ func testMagnet(t *testing.T, downKBs int) {
 	ls.Port = 0
 	ls.DHT, ls.UPnP = false, false
 	ls.Trackers = ""
+	ls.AutoImport = false // the import goroutine would outlive the test's temp dir
 	ls.DownKBs = downKBs
 	ls.BindIface = loopbackIface(t)
 	b, _ := json.Marshal(ls)
@@ -112,7 +117,11 @@ func testMagnet(t *testing.T, downKBs int) {
 		}
 		if time.Now().After(deadline) {
 			got, _ := e.Get(hash)
-			t.Fatalf("download did not finish: %+v", got)
+			var st strings.Builder
+			e.mu.Lock()
+			e.cl.WriteStatus(&st)
+			e.mu.Unlock()
+			t.Fatalf("download did not finish: %+v\n%s", got, st.String())
 		}
 	}
 }

@@ -24,19 +24,8 @@ func Organize(src, moviesRoot, showsRoot string) (string, error) {
 // temporary hard link of a torrent file that must stay in place for seeding).
 // Subtitles next to origPath are linked or copied, never moved, in that case.
 func OrganizeAs(src, origPath, moviesRoot, showsRoot string) (string, error) {
-	r := parse.Parse(origPath)
 	ext := strings.ToLower(filepath.Ext(origPath))
-	var dst string
-	if r.Kind == "episode" {
-		show := safeName(r.Title)
-		dst = filepath.Join(showsRoot, show, fmt.Sprintf("Season %d", r.Season), fmt.Sprintf("%s - S%02dE%02d%s", show, r.Season, r.Episode, ext))
-	} else {
-		name := safeName(r.Title)
-		if r.Year > 0 {
-			name = fmt.Sprintf("%s (%d)", name, r.Year)
-		}
-		dst = filepath.Join(moviesRoot, name, name+ext)
-	}
+	dst := Target(origPath, moviesRoot, showsRoot)
 	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
 		return "", err
 	}
@@ -63,6 +52,21 @@ func OrganizeAs(src, origPath, moviesRoot, showsRoot string) (string, error) {
 		}
 	}
 	return dst, nil
+}
+
+// Target is where Organize places a file named origPath.
+func Target(origPath, moviesRoot, showsRoot string) string {
+	r := parse.Parse(origPath)
+	ext := strings.ToLower(filepath.Ext(origPath))
+	if r.Kind == "episode" {
+		show := safeName(r.Title)
+		return filepath.Join(showsRoot, show, fmt.Sprintf("Season %d", r.Season), fmt.Sprintf("%s - S%02dE%02d%s", show, r.Season, r.Episode, ext))
+	}
+	name := safeName(r.Title)
+	if r.Year > 0 {
+		name = fmt.Sprintf("%s (%d)", name, r.Year)
+	}
+	return filepath.Join(moviesRoot, name, name+ext)
 }
 
 func safeName(s string) string {
