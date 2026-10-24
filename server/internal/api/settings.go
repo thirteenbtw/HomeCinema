@@ -344,7 +344,7 @@ func (s *Server) backup(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="homecinema-%s.db"`, time.Now().Format("2006-01-02")))
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="rivo-%s.db"`, time.Now().Format("2006-01-02")))
 	http.ServeFile(w, r, tmp)
 	return nil
 }
@@ -362,7 +362,7 @@ func (s *Server) restore(w http.ResponseWriter, r *http.Request) error {
 	defer f.Close()
 	head := make([]byte, 16)
 	if _, err := io.ReadFull(f, head); err != nil || !bytes.HasPrefix(head, []byte("SQLite format 3")) {
-		return badRequest("это не резервная копия HomeCinema")
+		return badRequest("это не резервная копия Rivo")
 	}
 	dst := filepath.Join(s.Cfg.DataDir, "restore.db")
 	out, err := os.Create(dst)

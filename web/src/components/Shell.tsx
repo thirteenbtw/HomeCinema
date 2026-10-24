@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { useApp } from '../state';
 import { t, tr } from '../i18n';
 import { Icon } from './Icon';
+import { AppMark } from './Brand';
 import { CastDialog } from './CastDialog';
 import { Dots } from './Dots';
 import { PreviewLayer } from './Preview';
@@ -45,8 +46,8 @@ export function Shell() {
       <div className={`app th-${theme} ac-${prefs.accent}`}>
         {bgOn && <Dots mode={prefs.bg === 'static' ? 'static' : 'live'} intensity={prefs.intensity} colors={c} />}
         <nav aria-label={tr('Разделы', 'Sections')} style={{ flex: '0 0 64px', padding: '16px 10px', borderRight: '1px solid var(--line)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, position: 'sticky', top: 0, height: 'var(--vh)', overflowY: 'auto', overflowX: 'hidden', scrollbarWidth: 'none', zIndex: 2 }}>
-          <Link to="/" aria-label="HomeCinema" className="nav-extra" style={{ width: 32, height: 32, borderRadius: 9, background: 'var(--acc)', display: 'grid', placeItems: 'center', marginBottom: 16 }}>
-            <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M8 5l11 7-11 7z" fill="#FFFFFF" /></svg>
+          <Link to="/" aria-label="Rivo" className="nav-extra" style={{ display: 'grid', marginBottom: 16 }}>
+            <AppMark size={34} />
           </Link>
           <Nav to="/" icon="home" label={t('home')} end />
           <Nav to="/library/movies" icon="film" label={t('movies')} />

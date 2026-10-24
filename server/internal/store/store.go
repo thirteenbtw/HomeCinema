@@ -143,7 +143,7 @@ func (s *Store) ensureDefaultProfile() error {
 		return err
 	}
 	if n == 0 {
-		_, err := s.Exec(`INSERT INTO profiles(name, color) VALUES('Владелец', '#C8232D')`)
+		_, err := s.Exec(`INSERT INTO profiles(name, color) VALUES('Владелец', '#5B6EE1')`)
 		return err
 	}
 	return nil

@@ -6,7 +6,7 @@ import { tr } from '../i18n';
 import { Modal } from '../components/CastDialog';
 import { Icon } from '../components/Icon';
 
-const colors = ['#C8232D', '#2D5B8C', '#2F7A50', '#B35F00', '#6E5FB0', '#8E3B4F'];
+const colors = ['#5B6EE1', '#23806B', '#C8232D', '#B35F00', '#2D5B8C', '#8E3B4F'];
 const MAX = 5;
 
 function Avatar({ p, size = 56 }: { p: { name: string; color: string }; size?: number }) {

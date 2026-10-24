@@ -193,7 +193,7 @@ function rememberSearch(q: string) {
   try { localStorage.setItem(recentKey, JSON.stringify(list)); } catch { /* private mode */ }
 }
 
-const duo = ['#C8232D', '#2D6FB5', '#7B3FC4', '#1F8A86', '#B4235F', '#C46A1A'];
+const duo = ['#5B6EE1', '#2D6FB5', '#7B3FC4', '#1F8A86', '#B4235F', '#C46A1A'];
 
 // SearchStart: what the search shows before anything is typed — recent
 // queries and big genre tiles in two-tone color.

@@ -1,12 +1,14 @@
-/* Design tokens and classes from the HomeCinema design canvas. */
+/* Design tokens and classes. Palette and type follow the Rivo identity:
+   Lavender #A5B4FC, Ice #E7ECF7, Iris #5B6EE1, Mint #8EDCC8, Night #141A33;
+   Inter Tight for headlines, Inter for the interface. */
 @import '@fontsource/inter/400.css';
 @import '@fontsource/inter/500.css';
 @import '@fontsource/inter/600.css';
 @import '@fontsource/inter/700.css';
 @import '@fontsource/inter/800.css';
-@import '@fontsource/oswald/500.css';
-@import '@fontsource/oswald/600.css';
-@import '@fontsource/oswald/700.css';
+@import '@fontsource/inter-tight/700.css';
+@import '@fontsource/inter-tight/800.css';
+@import '@fontsource/inter-tight/900.css';
 @import '@fontsource/jetbrains-mono/500.css';
 :root{--fs:1;--zoom:1;--vh:calc(100vh / var(--zoom));--vw:calc(100vw / var(--zoom))}
 
@@ -16,16 +18,18 @@ html, body, #root { margin: 0; min-height: 100%; }
 body { font-family: 'Inter', system-ui, sans-serif; font-size: calc(16px * var(--fs)); -webkit-font-smoothing: antialiased; }
 button, input, select, textarea { font-family: inherit; }
 
-.th-light{--dot-a:15%;--bg:#FFFFFF;--bg2:#F7F7F5;--chip:#F2F2F0;--line:#EDEDEA;--line2:#E2E2DE;--fg:#111214;--fg2:#2A2C30;--mut:#6B6F76;--mut2:#4A4D52;--input:#FFFFFFE6;--panel:#111214;--num:#D3D3CF;--sh:#00000012;--amb:.30;--acct:var(--acc-dk);--ok-bg:#E8F6EE;--ok-fg:#17663D;--warn-bg:#FFF2DC;--warn-fg:#8A4B00;--err-bg:#FDE8E8;--err-fg:#A3161F;color-scheme:light}
-.th-dark{--dot-a:14%;--bg:#0E0F12;--bg2:#17191D;--chip:#212329;--line:#25282E;--line2:#33363D;--fg:#ECEDEF;--fg2:#D4D6DA;--mut:#9A9FA8;--mut2:#B8BCC3;--input:#17191DE6;--panel:#1B1D22;--num:#3A3D44;--sh:#00000066;--amb:.42;--acct:var(--acc-lt);--ok-bg:#12301F;--ok-fg:#6FD69E;--warn-bg:#33240C;--warn-fg:#F2B55C;--err-bg:#3A1416;--err-fg:#FF8A90;color-scheme:dark}
-.th-oled{--dot-a:13%;--bg:#000000;--bg2:#0C0C0E;--chip:#17181B;--line:#1A1B1F;--line2:#2A2C31;--fg:#F2F2F3;--fg2:#D8D9DC;--mut:#9599A1;--mut2:#B5B8BE;--input:#0C0C0EE6;--panel:#111215;--num:#2C2E33;--sh:#00000080;--amb:.34;--acct:var(--acc-lt);--ok-bg:#0D2618;--ok-fg:#6FD69E;--warn-bg:#2A1E08;--warn-fg:#F2B55C;--err-bg:#300F11;--err-fg:#FF8A90;color-scheme:dark}
+.th-light{--dot-a:15%;--bg:#EEF1F9;--bg2:#FFFFFF;--chip:#E1E6F5;--line:#DCE2F2;--line2:#CBD3EC;--fg:#141A33;--fg2:#2A3150;--mut:#61677E;--mut2:#454B63;--input:#FFFFFFE6;--panel:#141A33;--num:#C9D0E8;--sh:#141A3314;--amb:.30;--acct:var(--acc-dk);--ok-bg:#E8F6EE;--ok-fg:#17663D;--warn-bg:#FFF2DC;--warn-fg:#8A4B00;--err-bg:#FDE8E8;--err-fg:#A3161F;color-scheme:light}
+.th-dark{--dot-a:14%;--bg:#141A33;--bg2:#1B2241;--chip:#252D51;--line:#262E52;--line2:#353E68;--fg:#EEF0FA;--fg2:#D5D9EC;--mut:#9CA2C0;--mut2:#BBC0D8;--input:#1B2241E6;--panel:#1E2548;--num:#3B4373;--sh:#00000066;--amb:.42;--acct:var(--acc-lt);--ok-bg:#12301F;--ok-fg:#6FD69E;--warn-bg:#33240C;--warn-fg:#F2B55C;--err-bg:#3A1416;--err-fg:#FF8A90;color-scheme:dark}
+.th-oled{--dot-a:13%;--bg:#000000;--bg2:#0A0C16;--chip:#151829;--line:#181B2C;--line2:#272B42;--fg:#F2F3F8;--fg2:#D8DBE8;--mut:#959BB5;--mut2:#B5B9CE;--input:#0A0C16E6;--panel:#0F1222;--num:#2A2F4A;--sh:#00000080;--amb:.34;--acct:var(--acc-lt);--ok-bg:#0D2618;--ok-fg:#6FD69E;--warn-bg:#2A1E08;--warn-fg:#F2B55C;--err-bg:#300F11;--err-fg:#FF8A90;color-scheme:dark}
+.ac-iris{--acc:#5B6EE1;--acc-dk:#4F62D8;--acc-lt:#A5B4FC}
+.ac-mint{--acc:#23806B;--acc-dk:#1F7461;--acc-lt:#8EDCC8}
 .ac-red{--acc:#C8232D;--acc-dk:#C8232D;--acc-lt:#FF6B73}
 .ac-amber{--acc:#B35F00;--acc-dk:#A35600;--acc-lt:#F2A93B}
 .ac-blue{--acc:#2563EB;--acc-dk:#2257D6;--acc-lt:#7AA7FF}
 .ac-green{--acc:#16803C;--acc-dk:#15763A;--acc-lt:#4CC38A}
-.app{--soft:color-mix(in srgb,var(--acc) 14%,var(--bg));background:var(--bg);color:var(--fg);transition:background .35s,color .35s;display:flex;min-height:var(--vh);position:relative;overflow-x:clip}
-body:has(.app.th-light){background:#FFFFFF}
-body:has(.app.th-dark){background:#0E0F12}
+.app{--lav:#A5B4FC;--mint:#8EDCC8;--prog:#3FB79C;--soft:color-mix(in srgb,var(--acc) 14%,var(--bg));background:var(--bg);color:var(--fg);transition:background .35s,color .35s;display:flex;min-height:var(--vh);position:relative;overflow-x:clip}
+body:has(.app.th-light){background:#EEF1F9}
+body:has(.app.th-dark){background:#141A33}
 body:has(.app.th-oled){background:#000}
 
 a{color:var(--acct);text-decoration:none}a:hover{opacity:.8}
@@ -48,7 +52,13 @@ a{color:var(--acct);text-decoration:none}a:hover{opacity:.8}
 .btn-l{background:var(--chip);color:var(--fg)}
 .btn-d{background:var(--fg);color:var(--bg)}
 .btn-o{background:var(--bg);color:var(--fg);border:1px solid var(--line2)}
-.disp{font-family:'Oswald',sans-serif;text-transform:uppercase}
+.disp{font-family:'Inter Tight','Inter',sans-serif;font-weight:800!important;letter-spacing:-.035em!important}
+/* Rivo wordmark: the dot over the dotless «ı» is a tilted square, the «o» is a ring. */
+.wm{font-family:'Inter Tight','Inter',sans-serif;font-weight:800;letter-spacing:-.045em;line-height:1;display:inline-flex;align-items:baseline;white-space:nowrap}
+.wm .i{position:relative;display:inline-block;margin-left:.055em;margin-right:.05em}
+.wm .i::after{content:"";position:absolute;left:50%;top:-.07em;width:.155em;height:.155em;margin-left:-.0775em;background:currentColor;transform:rotate(45deg);border-radius:.02em}
+.wm.hot .i::after{background:#8EDCC8}
+.wm .o{display:inline-block;width:.56em;height:.56em;border-radius:50%;border:.15em solid currentColor;margin-left:.03em;position:relative;top:.02em}
 .mono{font-family:'JetBrains Mono',monospace}
 .sub{font-size:calc(12px * var(--fs));color:var(--mut)}
 .lay{transition:transform .25s ease-out}
@@ -91,8 +101,8 @@ a{color:var(--acct);text-decoration:none}a:hover{opacity:.8}
 .th{white-space:nowrap;font-size:calc(11px * var(--fs));font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);text-align:left;padding:0 12px 8px}
 .td{padding:12px;border-top:1px solid var(--line);font-size:calc(13px * var(--fs));vertical-align:middle}
 .tag{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:999px;font-size:calc(11px * var(--fs));font-weight:700;white-space:nowrap}
-.h1{margin:0;font-size:calc(28px * var(--fs));font-weight:800;letter-spacing:-.01em}
-.h2{margin:0;font-size:calc(16px * var(--fs));font-weight:700}
+.h1{margin:0;font-family:'Inter Tight','Inter',sans-serif;font-size:calc(28px * var(--fs));font-weight:800;letter-spacing:-.03em}
+.h2{margin:0;font-family:'Inter Tight','Inter',sans-serif;font-size:calc(17px * var(--fs));font-weight:800;letter-spacing:-.015em}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 /* Scrollbars: a thin pill that floats off the edge, thickens on hover, turns accent while dragged. */
 html{background:var(--bg,#fff);--sb:color-mix(in srgb,var(--fg,#111214) 22%,transparent);--sb-h:color-mix(in srgb,var(--fg,#111214) 42%,transparent)}
@@ -100,7 +110,7 @@ html{background:var(--bg,#fff);--sb:color-mix(in srgb,var(--fg,#111214) 22%,tran
 ::-webkit-scrollbar-track,::-webkit-scrollbar-corner{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--sb);border-radius:99px;border:5px solid transparent;background-clip:padding-box;min-height:48px;transition:background-color .2s}
 ::-webkit-scrollbar-thumb:hover{background-color:var(--sb-h);border-width:3px}
-::-webkit-scrollbar-thumb:active{background-color:var(--acc,#C8232D);border-width:3px}
+::-webkit-scrollbar-thumb:active{background-color:var(--acc,#5B6EE1);border-width:3px}
 ::-webkit-scrollbar-button{display:none;width:0;height:0}
 @supports not selector(::-webkit-scrollbar){*{scrollbar-width:thin;scrollbar-color:var(--sb) transparent}}
 .scroll-x{display:flex;gap:14px;overflow-x:auto;overflow-y:hidden;padding:4px 0;scrollbar-width:none;overscroll-behavior-x:contain;cursor:grab}
@@ -114,11 +124,13 @@ html{background:var(--bg,#fff);--sb:color-mix(in srgb,var(--fg,#111214) 22%,tran
 .err{padding:10px 14px;border-radius:12px;background:var(--err-bg);color:var(--err-fg);font-size:calc(13px * var(--fs))}
 .ok{padding:10px 14px;border-radius:12px;background:var(--ok-bg);color:var(--ok-fg);font-size:calc(13px * var(--fs))}
 .bar{height:4px;border-radius:2px;background:var(--line2);overflow:hidden}
-.bar > div{height:100%;border-radius:2px;background:var(--acc)}
+.bar > div{height:100%;border-radius:2px;background:var(--prog)}
 .modal-back{position:fixed;inset:0;background:#000000A0;display:grid;place-items:center;z-index:50;padding:16px}
 .modal{width:min(560px,100%);max-height:calc(var(--vh) - 32px);overflow:auto;background:var(--bg);color:var(--fg);border-radius:20px;border:1px solid var(--line);box-shadow:0 30px 80px #00000066;padding:22px;display:flex;flex-direction:column;gap:14px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:calc(13px * var(--fs));font-weight:600;z-index:60;box-shadow:0 10px 30px #0004;max-width:calc(100vw - 32px)}
-.spin{width:18px;height:18px;border-radius:50%;border:2px solid var(--line2);border-top-color:var(--acc);animation:sp 0.8s linear infinite;display:inline-block}
+.spin{width:18px;height:18px;border-radius:50%;border:3.5px solid var(--acc-lt,#A5B4FC);position:relative;animation:sp 1.2s cubic-bezier(.6,0,.4,1) infinite;display:inline-block;flex:none}
+/* the spark orbits the ring, as on the Rivo loading mark */
+.spin::after{content:"";position:absolute;right:-5px;top:-5px;width:5px;height:5px;border-radius:1px;background:var(--mint,#8EDCC8);transform:rotate(45deg)}
 @keyframes sp{to{transform:rotate(360deg)}}
 
 /* player */
@@ -157,9 +169,9 @@ input[type=range].rng{accent-color:var(--acc)}
 .gtile::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,#000000B0,#00000040)}
 .gtile:hover img{opacity:.8;transform:scale(1.05)}
 .gtile-k,.gtile-n{position:relative;z-index:1}
-.gtile-k{font-size:calc(9px * var(--fs));font-weight:700;letter-spacing:.12em;color:#FF9AA0}
+.gtile-k{font-size:calc(9px * var(--fs));font-weight:700;letter-spacing:.12em;color:#A5B4FC}
 .gtile-n{font-size:calc(20px * var(--fs));font-weight:600;line-height:1}
-.topnum{font-size:calc(104px * var(--fs));line-height:.78;font-weight:700;color:var(--bg);-webkit-text-stroke:2px var(--num);margin-right:-16px;position:relative;z-index:0}
+.topnum{font-size:calc(104px * var(--fs));line-height:.78;font-weight:900!important;color:var(--bg);-webkit-text-stroke:2px var(--num);margin-right:-16px;position:relative;z-index:0}
 .topnum + *{position:relative;z-index:1}
 /* two-tone genre tiles on the search start */
 .grid-duo{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
