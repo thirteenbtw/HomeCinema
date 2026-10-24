@@ -306,6 +306,11 @@ func (sc *Scanner) metaLoop(ctx context.Context) {
 }
 
 func (sc *Scanner) matchPending(ctx context.Context) {
+	type rowKey struct {
+		kind string
+		id   int64
+	}
+	tried := map[rowKey]bool{}
 	for ctx.Err() == nil {
 		batch, err := sc.Store.PendingMetadata(20)
 		if err != nil || len(batch) == 0 {
@@ -313,7 +318,14 @@ func (sc *Scanner) matchPending(ctx context.Context) {
 			return
 		}
 		sc.setStatus(func(s *Status) { s.Matching = len(batch) })
+		progress := false
 		for _, p := range batch {
+			key := rowKey{p.Kind, p.ID}
+			if tried[key] {
+				continue
+			}
+			tried[key] = true
+			progress = true
 			err := sc.matchOne(ctx, p)
 			if errors.Is(err, tmdb.ErrNoKey) {
 				return // nothing to do until the user sets a key
@@ -323,8 +335,26 @@ func (sc *Scanner) matchPending(ctx context.Context) {
 				if isNetErr(err) {
 					return // offline: keep items pending, retry later
 				}
+				// Anything else will fail the same way next time: park the
+				// row as "not found" so the queue moves on.
+				sc.markFailed(p)
 			}
 		}
+		if !progress {
+			return // only rows that could not be updated are left
+		}
+	}
+}
+
+func (sc *Scanner) markFailed(p store.Pending) {
+	var err error
+	if p.Kind == "show" {
+		err = sc.Store.SetShowMatched(p.ID, 2)
+	} else {
+		err = sc.Store.SetItemMatched(p.ID, 2)
+	}
+	if err != nil {
+		log.Printf("tmdb %s %q: %v", p.Kind, p.Title, err)
 	}
 }
 

@@ -146,20 +146,6 @@ func (s *Store) AllFilePaths(libraryID int64) (map[string]int64, error) {
 	return out, rows.Err()
 }
 
-// UpsertShow finds or creates a show by parsed title/year and returns its id.
-func (s *Store) UpsertShow(title string, year int) (int64, error) {
-	var id int64
-	err := s.DB.QueryRow(`SELECT id FROM shows WHERE lower(title)=lower(?) AND (year=? OR ?=0 OR year=0)`, title, year, year).Scan(&id)
-	if err == nil {
-		return id, nil
-	}
-	res, err := s.Exec(`INSERT INTO shows(title, year) VALUES(?,?)`, title, year)
-	if err != nil {
-		return 0, err
-	}
-	return res.LastInsertId()
-}
-
 type NewItem struct {
 	LibraryID int64
 	Kind      string
@@ -259,13 +245,6 @@ func (s *Store) ApplyItemMeta(id int64, m Meta) error {
 	return err
 }
 
-func (s *Store) ApplyShowMeta(id int64, m Meta) error {
-	_, err := s.Exec(`UPDATE shows SET tmdb_id=?, title=CASE WHEN ?<>'' THEN ? ELSE title END, year=CASE WHEN ?>0 THEN ? ELSE year END,
-		overview=?, poster=?, backdrop=?, genres=?, rating=?, cast_json=?, matched=? WHERE id=?`,
-		m.TmdbID, m.Title, m.Title, m.Year, m.Year, m.Overview, m.Poster, m.Backdrop, toJSON(nzs(m.Genres)), m.Rating, toJSON(nzc(m.Cast)), m.Matched, id)
-	return err
-}
-
 func (s *Store) SetItemMatched(id int64, matched int) error {
 	_, err := s.Exec(`UPDATE media_items SET matched=? WHERE id=?`, matched, id)
 	return err
@@ -304,7 +283,7 @@ type Pending struct {
 func (s *Store) PendingMetadata(limit int) ([]Pending, error) {
 	var out []Pending
 	rows, err := s.DB.Query(`SELECT id, 'movie', title, year, 0, 0, 0 FROM media_items WHERE kind='movie' AND matched=0
-		UNION ALL SELECT id, 'show', title, year, 0, 0, 0 FROM shows WHERE matched=0
+		UNION ALL SELECT id, 'show', CASE WHEN folder_title<>'' THEN folder_title ELSE title END, CASE WHEN folder_title<>'' THEN folder_year ELSE year END, 0, 0, 0 FROM shows WHERE matched=0
 		UNION ALL SELECT m.id, 'episode', s.title, 0, s.tmdb_id, m.season, m.episode FROM media_items m JOIN shows s ON s.id=m.show_id WHERE m.kind='episode' AND m.matched=0 AND s.matched IN (1,3)
 		LIMIT ?`, limit)
 	if err != nil {
