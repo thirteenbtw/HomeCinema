@@ -39,10 +39,10 @@ export default function Torrents() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [risk, setRisk] = useState<null | (() => void)>(null);
-  const [sel, setSel] = useState<string | null>(null);
+  const [sel, setSel] = useState<string | null>(params.get('sel'));
   const [drag, setDrag] = useState(false);
   const [confirmDel, setConfirmDel] = useState<TorrentInfo | null>(null);
-  const [open, setOpen] = useState<string | null>(null);
+  const [open, setOpen] = useState<string | null>(params.get('sel'));
   const fileInput = useRef<HTMLInputElement>(null);
   const items = ov?.items || [];
 
@@ -281,7 +281,8 @@ function StreamPanel({ t, onCast, onKeep }: { t: TorrentInfo; onCast: (file: num
       <div className="disp" style={{ fontSize: 26, fontWeight: 600, lineHeight: 1.05, wordBreak: 'break-word' }}>{st?.fileName?.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, '') || t.name}</div>
       <div style={{ fontSize: 12, color: '#A9ADB4' }}>{[st ? fmtSize(st.size) : t.size ? fmtSize(t.size) : '', `${Math.floor(t.progress * 100)}% ${tr('загружено', 'downloaded')}`].filter(Boolean).join(' · ')}</div>
       {err && !st && <div style={{ fontSize: 12, color: '#FFB4B8' }}>{t.status === 'meta' ? tr('Получаем метаданные от пиров…', 'Fetching metadata from peers…') : err}</div>}
-      {st && (
+      {st && !st.numPieces && <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: '#A9ADB4' }}><span className="spin" />{tr('Получаем метаданные от пиров…', 'Fetching metadata from peers…')}</div>}
+      {st && st.numPieces > 0 && (
         <>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
@@ -296,7 +297,7 @@ function StreamPanel({ t, onCast, onKeep }: { t: TorrentInfo; onCast: (file: num
               <span style={{ color: '#A9ADB4' }}>{st.numPieces.toLocaleString('ru-RU')} {tr('кусков', 'pieces')} · {fmtSize(st.pieceSize)}</span>
             </div>
             <div role="img" aria-label={tr(`Карта кусков: загружено ${Math.floor(st.progress * 100)}%`, `Piece map: ${Math.floor(st.progress * 100)}% downloaded`)} style={{ display: 'grid', gridTemplateColumns: 'repeat(40,minmax(0,1fr))', gap: 2 }}>
-              {st.pieces.map((p, i) => <div key={i} style={{ aspectRatio: '1', borderRadius: 1, background: colors[p] || colors[0] }} />)}
+              {(st.pieces || []).map((p, i) => <div key={i} style={{ aspectRatio: '1', borderRadius: 1, background: colors[p] || colors[0] }} />)}
             </div>
             <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', fontSize: 11, color: '#C9CCD1' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 8, height: 8, background: '#FFFFFF' }} />{tr('Загружено', 'Downloaded')}</span>

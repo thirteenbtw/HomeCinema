@@ -60,6 +60,16 @@ func main() {
 	tm := tmdb.New(filepath.Join(cfg.DataDir, "images"),
 		func() string { return st.Setting("tmdbKey", "") },
 		func() string { return st.Setting("metaLang", "ru-RU") })
+	tm.Mirrors = func() []tmdb.Mirror {
+		switch st.Setting("tmdbVia", "cub") {
+		case "direct":
+			return nil
+		case "custom":
+			return []tmdb.Mirror{{API: st.Setting("tmdbApi", ""), Image: st.Setting("tmdbImg", "")}}
+		}
+		// CUB first, TMDB itself (with the DNS-over-HTTPS fallback) last.
+		return append(append([]tmdb.Mirror{}, tmdb.CUB...), tmdb.Mirror{})
+	}
 	scanner := library.New(st, prober, tm, bus)
 
 	trans := transcode.New(cfg.FFmpeg, cfg.CacheDir)

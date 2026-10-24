@@ -333,6 +333,13 @@ func (s *Server) preparePlayback(ctx context.Context, f *store.File, input strin
 		}
 	} else {
 		height := f.Height
+		if d.CopyVideo && start > 0 {
+			// A stream copy can only start on a keyframe: start the session (and
+			// the player's clock) there, so audio and subtitles stay in sync.
+			if kf, ok := s.Trans.KeyframeBefore(ctx, input, start); ok {
+				start = kf
+			}
+		}
 		sess, err := s.Trans.Start(transcode.Options{
 			FileID: f.ID, Input: input, Start: start, Audio: audioIndexOr(audio), Quality: quality,
 			CopyVideo: d.CopyVideo, CopyAudio: d.CopyAudio, Tonemap: d.Tonemap, BurnSub: burnSub, BurnSubPos: burnPos, Height: height,

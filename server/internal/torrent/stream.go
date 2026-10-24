@@ -190,7 +190,7 @@ func (e *Engine) Stream(hash string, idx int, cells int) (StreamStatus, error) {
 	if err != nil {
 		return StreamStatus{}, err
 	}
-	st := StreamStatus{Hash: m.row.InfoHash, Name: m.row.Name, Down: m.down}
+	st := StreamStatus{Hash: m.row.InfoHash, Name: m.row.Name, Down: m.down, Pieces: []int{}}
 	s := m.t.Stats()
 	st.Seeds, st.Peers = s.ConnectedSeeders, s.ActivePeers
 	if m.t.Info() == nil {

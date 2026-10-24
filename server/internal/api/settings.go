@@ -23,9 +23,9 @@ import (
 	"github.com/thirteenbtw/homecinema/server/internal/torrent"
 )
 
-var generalKeys = []string{"metaLang", "uiLang", "hwaccel", "quality", "maxStreams", "tonemap", "externalPlayer", "useExternal", "setupDone", "subLang", "autoNext"}
+var generalKeys = []string{"metaLang", "uiLang", "hwaccel", "quality", "maxStreams", "tonemap", "externalPlayer", "useExternal", "setupDone", "subLang", "autoNext", "tmdbApi", "tmdbImg", "tmdbVia"}
 
-var generalDefaults = map[string]string{"metaLang": "ru-RU", "uiLang": "ru", "hwaccel": "auto", "quality": "original", "maxStreams": "2", "tonemap": "1", "useExternal": "", "setupDone": "", "subLang": "rus", "autoNext": "1"}
+var generalDefaults = map[string]string{"metaLang": "ru-RU", "uiLang": "ru", "hwaccel": "auto", "quality": "original", "maxStreams": "2", "tonemap": "1", "useExternal": "", "setupDone": "", "subLang": "rus", "autoNext": "1", "tmdbVia": "cub"}
 
 func (s *Server) getSettings(w http.ResponseWriter, r *http.Request) error {
 	out := map[string]any{}
@@ -48,6 +48,7 @@ func (s *Server) putSettings(w http.ResponseWriter, r *http.Request) error {
 	if err := readJSON(r, &b); err != nil {
 		return err
 	}
+	oldAPI, oldImg, oldVia := s.Store.Setting("tmdbApi", ""), s.Store.Setting("tmdbImg", ""), s.Store.Setting("tmdbVia", generalDefaults["tmdbVia"])
 	for _, k := range generalKeys {
 		if v, ok := b[k]; ok {
 			if err := s.Store.SetSetting(k, fmt.Sprint(v)); err != nil {
@@ -67,6 +68,19 @@ func (s *Server) putSettings(w http.ResponseWriter, r *http.Request) error {
 			s.Store.ResetUnmatched()
 			s.Scanner.KickMetadata()
 		}
+	}
+	_, api := b["tmdbApi"]
+	_, img := b["tmdbImg"]
+	_, via := b["tmdbVia"]
+	if (api || img || via) && s.Store.Setting("tmdbKey", "") != "" {
+		if err := s.TMDB.Check(r.Context()); err != nil {
+			_ = s.Store.SetSetting("tmdbApi", oldAPI)
+			_ = s.Store.SetSetting("tmdbImg", oldImg)
+			_ = s.Store.SetSetting("tmdbVia", oldVia)
+			return badRequest("TMDB так не отвечает, настройка не изменена: %v", err)
+		}
+		s.Store.ResetUnmatched()
+		s.Scanner.KickMetadata()
 	}
 	if v, ok := b["metaLang"]; ok && v != "" {
 		s.Scanner.KickMetadata()

@@ -1,9 +1,10 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Component, createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useApp } from '../state';
 import { t, tr } from '../i18n';
 import { Icon } from './Icon';
 import { CastDialog } from './CastDialog';
+import { installDragScroll } from './dragScroll';
 
 // Pages tint the ambient background (e.g. with the featured poster's colors).
 const AmbientCtx = createContext<(colors: string[] | null) => void>(() => {});
@@ -23,6 +24,7 @@ export function Shell() {
   const bgOn = prefs.bg !== 'off';
 
   useEffect(() => () => cancelAnimationFrame(raf.current), []);
+  useEffect(() => installDragScroll(), []);
   useEffect(() => { window.scrollTo(0, 0); }, [loc.pathname]);
 
   const onMove = (e: React.MouseEvent) => {
@@ -53,6 +55,7 @@ export function Shell() {
           <Nav to="/" icon="home" label={t('home')} end />
           <Nav to="/library/movies" icon="film" label={t('movies')} />
           <Nav to="/library/shows" icon="tv" label={t('shows')} />
+          <Nav to="/catalog" icon="compass" label={t('catalog')} />
           <div aria-hidden="true" className="nav-extra" style={{ width: 24, height: 1, background: 'var(--line)', margin: '8px 0' }} />
           <Nav to="/torrents" icon="download" label={active ? `${t('torrents')}, ${active} ${tr('активных', 'active')}` : t('torrents')} dot={active > 0} />
           <Nav to="/devices" icon="cast" label={t('devices')} />
@@ -70,11 +73,29 @@ export function Shell() {
             </Link>
           </div>
         </nav>
-        <Outlet />
+        <PageBoundary key={loc.pathname}><Outlet /></PageBoundary>
         <CastDialog />
       </div>
     </AmbientCtx.Provider>
   );
+}
+
+// PageBoundary keeps a crash in one page from blanking the whole app; it
+// resets when the user navigates elsewhere.
+class PageBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  componentDidCatch(error: Error) { console.error(error); }
+  render() {
+    if (!this.state.error) return this.props.children;
+    return (
+      <main className="main pad">
+        <h1 className="h1">{tr('Что-то пошло не так', 'Something went wrong')}</h1>
+        <div className="err">{this.state.error.message}</div>
+        <div className="row"><button className="btn btn-l sm" onClick={() => this.setState({ error: null })}>{tr('Попробовать снова', 'Try again')}</button></div>
+      </main>
+    );
+  }
 }
 
 function Nav({ to, icon, label, end, dot, extra }: { to: string; icon: string; label: string; end?: boolean; dot?: boolean; extra?: boolean }) {
