@@ -4,7 +4,10 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
+	"time"
 )
 
 func TestJacRed(t *testing.T) {
@@ -18,7 +21,7 @@ func TestJacRed(t *testing.T) {
 			{"Tracker":"rutor","Title":"no link"}]}`))
 	}))
 	defer srv.Close()
-	res, err := queryJacRed(context.Background(), http.DefaultClient, Indexer{Name: "JacRed", URL: srv.URL + "/", Kind: KindJacRed}, "Дюна 2024")
+	res, err := queryJacRed(context.Background(), http.DefaultClient, Indexer{Name: "JacRed", URL: srv.URL + "/", Kind: KindJacRed}, "Дюна 2024", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,8 +35,88 @@ func TestJacRed(t *testing.T) {
 }
 
 func TestJacRedDown(t *testing.T) {
-	_, err := queryJacRed(context.Background(), http.DefaultClient, Indexer{Name: "JacRed", URL: "http://127.0.0.1:1", Kind: KindJacRed}, "x")
+	_, err := queryJacRed(context.Background(), http.DefaultClient, Indexer{Name: "JacRed", URL: "http://127.0.0.1:1", Kind: KindJacRed}, "x", nil)
 	if err == nil {
 		t.Fatal("no error")
+	}
+}
+
+func TestJacRedMirrors(t *testing.T) {
+	ok := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"Results":[{"Title":"A 1080p","MagnetUri":"magnet:?xt=urn:btih:a","Seeders":5}]}`))
+	}))
+	defer ok.Close()
+	hang := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { <-r.Context().Done() }))
+	defer hang.Close()
+	oldURL, oldMirrors := JacRedURL, JacRedMirrors
+	defer func() { JacRedURL, JacRedMirrors = oldURL, oldMirrors }()
+	JacRedURL, JacRedMirrors = hang.URL, []string{"http://127.0.0.1:1", ok.URL}
+
+	// the default instance hangs; a mirror answers without waiting for it
+	start := time.Now()
+	res, err := queryJacRed(context.Background(), http.DefaultClient, Indexer{Name: "JacRed", URL: hang.URL, Kind: KindJacRed}, "a", nil)
+	if err != nil || len(res) != 1 || time.Since(start) > 2*time.Second {
+		t.Fatalf("%v %+v %v", err, res, time.Since(start))
+	}
+
+	// when all fail, every host is named
+	JacRedURL, JacRedMirrors = "http://127.0.0.1:3", []string{"http://127.0.0.1:2"}
+	_, err = queryJacRed(context.Background(), http.DefaultClient, Indexer{Name: "JacRed", URL: JacRedURL, Kind: KindJacRed}, "a", nil)
+	if err == nil || !strings.Contains(err.Error(), "127.0.0.1:3") || !strings.Contains(err.Error(), "127.0.0.1:2") {
+		t.Fatalf("%v", err)
+	}
+}
+
+func TestIsJacRedSite(t *testing.T) {
+	for u, want := range map[string]bool{
+		"https://jac.red": true, "https://jacred.su/": true, "https://JACRED.xyz": true,
+		"https://jac.red/api/v2.0/indexers/all/results/torznab/": false,
+		"http://127.0.0.1:9117/":                                 false,
+	} {
+		if got := isJacRedSite(Indexer{URL: u}); got != want {
+			t.Errorf("%s: %v", u, got)
+		}
+	}
+}
+
+func TestJacRedEmptyWaits(t *testing.T) {
+	empty := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(`{"Results":[]}`)) }))
+	defer empty.Close()
+	slow := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(200 * time.Millisecond)
+		w.Write([]byte(`{"Results":[{"Title":"A","MagnetUri":"magnet:?xt=urn:btih:a"}]}`))
+	}))
+	defer slow.Close()
+	oldURL, oldMirrors := JacRedURL, JacRedMirrors
+	defer func() { JacRedURL, JacRedMirrors = oldURL, oldMirrors }()
+	JacRedURL, JacRedMirrors = empty.URL, []string{slow.URL}
+	res, err := queryJacRed(context.Background(), http.DefaultClient, Indexer{Name: "JacRed", URL: empty.URL, Kind: KindJacRed}, "a", nil)
+	if err != nil || len(res) != 1 {
+		t.Fatalf("%v %+v", err, res)
+	}
+	JacRedMirrors = nil
+	res, err = queryJacRed(context.Background(), http.DefaultClient, Indexer{Name: "JacRed", URL: empty.URL, Kind: KindJacRed}, "a", nil)
+	if err != nil || len(res) != 0 {
+		t.Fatalf("%v %+v", err, res)
+	}
+}
+
+func TestJacRedTitleQuery(t *testing.T) {
+	var got url.Values
+	var ua string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		got, ua = r.URL.Query(), r.UserAgent()
+		w.Write([]byte(`{"Results":[]}`))
+	}))
+	defer srv.Close()
+	tq := &TitleQuery{Names: []string{"Сумерки", "Twilight"}, Year: 2008}
+	if _, err := queryJacRed(context.Background(), http.DefaultClient, Indexer{URL: srv.URL}, "Сумерки 2008", tq); err != nil {
+		t.Fatal(err)
+	}
+	if got.Get("Query") != "Сумерки" || got.Get("title") != "Сумерки" || got.Get("title_original") != "Twilight" || got.Get("year") != "2008" || got.Get("is_serial") != "1" {
+		t.Fatalf("%v", got)
+	}
+	if !strings.HasPrefix(ua, "Mozilla/") {
+		t.Fatalf("user agent %q", ua)
 	}
 }
