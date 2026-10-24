@@ -107,10 +107,12 @@ function Detail({ d }: { d: TitleResp }) {
             {x.origTitle && x.origTitle !== x.title && <div style={{ fontSize: 'calc(14px * var(--fs))', color: '#D4D7DC' }}>{x.origTitle}</div>}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 'calc(13px * var(--fs))', fontWeight: 600 }}>
               {meta}
-              {x.cert && <span style={{ fontSize: 'calc(11px * var(--fs))', padding: '2px 7px', border: '1px solid #FFFFFF66', borderRadius: 4 }}>{x.cert}</span>}
-              {x.rating > 0 && <span style={{ fontSize: 'calc(11px * var(--fs))', padding: '2px 7px', borderRadius: 4, background: '#01B4E4', color: '#06222C' }}>TMDB {x.rating.toFixed(1)}</span>}
-              <ExternalRatings kind={x.kind} id={x.id} />
-              {show && seasons.length > 0 && <span style={{ fontSize: 'calc(11px * var(--fs))', padding: '2px 7px', borderRadius: 4, background: '#FFFFFF2E' }}>{seasons.length} {tr('сез.', 'seasons')}</span>}
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
+                {x.cert && <span style={{ fontSize: 'calc(11px * var(--fs))', padding: '2px 7px', border: '1px solid #FFFFFF66', borderRadius: 4 }}>{x.cert}</span>}
+                {x.rating > 0 && <span style={{ fontSize: 'calc(11px * var(--fs))', padding: '2px 7px', borderRadius: 4, background: '#01B4E4', color: '#06222C' }}>TMDB {x.rating.toFixed(1)}</span>}
+                <ExternalRatings kind={x.kind} id={x.id} />
+                {show && seasons.length > 0 && <span style={{ fontSize: 'calc(11px * var(--fs))', padding: '2px 7px', borderRadius: 4, background: '#FFFFFF2E' }}>{seasons.length} {tr('сез.', 'seasons')}</span>}
+              </span>
             </div>
             {x.tagline && <div style={{ fontSize: 'calc(14px * var(--fs))', fontStyle: 'italic', color: '#D4D7DC' }}>{x.tagline}</div>}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingTop: 4 }}>
