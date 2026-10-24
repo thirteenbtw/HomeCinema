@@ -18,9 +18,9 @@ const KindJacRed = "jacred"
 
 // JacRedURL is the public instance added for new users; JacRedMirrors are
 // tried when it does not answer.
-const JacRedURL = "https://jac.red"
+var JacRedURL = "https://jac.red"
 
-var JacRedMirrors = []string{"https://jacred.xyz"}
+var JacRedMirrors = []string{"https://jacred.su", "https://jacred.xyz"}
 
 func defaultIndexers() []Indexer {
 	return []Indexer{{Name: "JacRed", URL: JacRedURL, Kind: KindJacRed, On: true}}
@@ -39,23 +39,35 @@ type jackettResults struct {
 	} `json:"Results"`
 }
 
+// queryJacRed asks the instance and, for the default one, its mirrors all at
+// once: public instances come and go, and a dead one should cost nothing.
 func queryJacRed(ctx context.Context, client *http.Client, in Indexer, query string) ([]Result, error) {
 	hosts := []string{in.URL}
 	if strings.TrimRight(in.URL, "/") == JacRedURL {
 		hosts = append(hosts, JacRedMirrors...)
 	}
-	var lastErr error
-	for _, h := range hosts {
-		res, err := jacRedFrom(ctx, client, in, h, query)
-		if err == nil {
-			return res, nil
-		}
-		lastErr = err
-		if ctx.Err() != nil {
-			break
-		}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	type answer struct {
+		res []Result
+		err error
 	}
-	return nil, lastErr
+	ch := make(chan answer, len(hosts))
+	for _, h := range hosts {
+		go func(h string) {
+			res, err := jacRedFrom(ctx, client, in, h, query)
+			ch <- answer{res, err}
+		}(h)
+	}
+	var fails []string
+	for range hosts {
+		a := <-ch
+		if a.err == nil {
+			return a.res, nil
+		}
+		fails = append(fails, a.err.Error())
+	}
+	return nil, errors.New(strings.Join(fails, "; "))
 }
 
 func jacRedFrom(ctx context.Context, client *http.Client, in Indexer, host, query string) ([]Result, error) {
@@ -67,7 +79,7 @@ func jacRedFrom(ctx context.Context, client *http.Client, in Indexer, host, quer
 	q.Set("apikey", in.APIKey)
 	q.Set("Query", query)
 	u.RawQuery = q.Encode()
-	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 	req, _ := http.NewRequestWithContext(ctx, "GET", u.String(), nil)
 	req.Header.Set("Accept", "application/json")
