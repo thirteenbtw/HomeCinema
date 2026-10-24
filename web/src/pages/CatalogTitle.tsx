@@ -10,6 +10,7 @@ import { Section, useAmbient } from '../components/Shell';
 import { CatalogCard } from './Catalog';
 import { HeroTrailer, rememberTrailer } from '../components/Trailer';
 import { personLink } from './Person';
+import { ExternalRatings, MarkButtons } from '../components/Marks';
 
 type TitleResp = { title: CatalogTitle; library: { kind: 'movie' | 'show'; id: number } | null; indexers: boolean };
 type TorrentsResp = { results: SearchResult[]; errors: string[]; loose: boolean };
@@ -108,6 +109,7 @@ function Detail({ d }: { d: TitleResp }) {
               {meta}
               {x.cert && <span style={{ fontSize: 'calc(11px * var(--fs))', padding: '2px 7px', border: '1px solid #FFFFFF66', borderRadius: 4 }}>{x.cert}</span>}
               {x.rating > 0 && <span style={{ fontSize: 'calc(11px * var(--fs))', padding: '2px 7px', borderRadius: 4, background: '#01B4E4', color: '#06222C' }}>TMDB {x.rating.toFixed(1)}</span>}
+              <ExternalRatings kind={x.kind} id={x.id} />
               {show && seasons.length > 0 && <span style={{ fontSize: 'calc(11px * var(--fs))', padding: '2px 7px', borderRadius: 4, background: '#FFFFFF2E' }}>{seasons.length} {tr('сез.', 'seasons')}</span>}
             </div>
             {x.tagline && <div style={{ fontSize: 'calc(14px * var(--fs))', fontStyle: 'italic', color: '#D4D7DC' }}>{x.tagline}</div>}
@@ -117,6 +119,7 @@ function Detail({ d }: { d: TitleResp }) {
               {best && <button className="btn btn-g" disabled={!!busy} onClick={() => add(best, 'download')}><Icon name="download" size={18} />{tr('Скачать', 'Download')}</button>}
               {!best && !libLink && d.indexers && loading && <span className="btn btn-g" aria-live="polite"><span className="spin" />{tr('Ищем раздачи…', 'Looking for releases…')}</span>}
             </div>
+            <MarkButtons x={x} />
           </div>
         </div>
       </section>

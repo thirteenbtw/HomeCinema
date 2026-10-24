@@ -23,6 +23,7 @@ import (
 	"github.com/thirteenbtw/homecinema/server/internal/library"
 	"github.com/thirteenbtw/homecinema/server/internal/netutil"
 	"github.com/thirteenbtw/homecinema/server/internal/probe"
+	"github.com/thirteenbtw/homecinema/server/internal/ratings"
 	"github.com/thirteenbtw/homecinema/server/internal/renderer"
 	"github.com/thirteenbtw/homecinema/server/internal/store"
 	"github.com/thirteenbtw/homecinema/server/internal/tmdb"
@@ -44,13 +45,19 @@ type Server struct {
 	Version  string
 	Port     int
 
-	secret []byte
-	probes *probeCache
+	secret  []byte
+	probes  *probeCache
+	ratings *ratings.Client
+	lb      lbState
+	lbHTTP  *http.Client
 }
 
 func (s *Server) Handler() http.Handler {
 	s.secret = s.loadSecret()
 	s.probes = newProbeCache()
+	s.ratings = ratings.New()
+	s.lbHTTP = &http.Client{Timeout: 20 * time.Second}
+	go s.letterboxdLoop()
 	mux := http.NewServeMux()
 	s.routes(mux)
 	return s.middleware(mux)
@@ -108,12 +115,24 @@ func (s *Server) routes(mux *http.ServeMux) {
 	h("POST /api/shows/{id}/match", s.matchShow)
 	mux.HandleFunc("GET /api/images/{name}", s.image)
 
+	// likes, watch later, watched (catalog titles) and Letterboxd
+	h("GET /api/marks", s.listMarks)
+	h("GET /api/marks/keys", s.markKeys)
+	h("POST /api/marks", s.setMark)
+	h("GET /api/letterboxd", s.letterboxdState)
+	h("PUT /api/letterboxd", s.putLetterboxd)
+	h("POST /api/letterboxd/sync", s.syncLetterboxd)
+	h("POST /api/letterboxd/import", s.importLetterboxd)
+	h("DELETE /api/letterboxd/marks", s.clearLetterboxd)
+	h("GET /api/letterboxd/export/{name}", s.exportLetterboxd)
+
 	// catalog (all of TMDB)
 	h("GET /api/catalog", s.catalogBrowse)
 	h("GET /api/catalog/search", s.catalogSearch)
 	h("GET /api/catalog/genres", s.catalogGenres)
 	h("GET /api/catalog/title/{kind}/{id}", s.catalogTitle)
 	h("GET /api/catalog/title/{kind}/{id}/torrents", s.catalogTorrents)
+	h("GET /api/catalog/title/{kind}/{id}/ratings", s.catalogRatings)
 	h("GET /api/catalog/person/{id}", s.catalogPerson)
 	h("GET /api/catalog/people", s.catalogPeople)
 	mux.HandleFunc("GET /api/catalog-img/{size}/{name}", s.catalogImage)

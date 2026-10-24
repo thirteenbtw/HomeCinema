@@ -11,6 +11,7 @@ import { previewProps } from '../components/Preview';
 import { PeopleRow } from './Person';
 import { ContinueSection, useHomeData } from '../components/LibraryParts';
 import { Icon, PlayGlyph } from '../components/Icon';
+import { CardMarks } from '../components/Marks';
 
 type Kind = 'movie' | 'tv';
 type Genre = { id: number; name: string };
@@ -288,6 +289,7 @@ export function CatalogCard({ x, showKind }: { x: CatalogItem; showKind?: boolea
           <>
             {!x.poster && <span className="disp" style={{ position: 'absolute', left: 12, right: 12, bottom: 14, color: '#FFFFFF', fontSize: 'calc(20px * var(--fs))', fontWeight: 600, lineHeight: 1 }}>{x.title}</span>}
             {x.rating > 0 && <span className="tag" style={{ position: 'absolute', top: 8, left: 8, background: x.rating >= 7 ? '#2F9E62' : x.rating >= 5.5 ? '#000000A0' : '#8E3B4F', color: '#FFFFFF' }}>{x.rating.toFixed(1)}</span>}
+            <CardMarks x={x} />
           </>
         } />
       <div>

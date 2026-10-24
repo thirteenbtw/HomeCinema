@@ -126,3 +126,35 @@ CREATE TABLE IF NOT EXISTS settings (
   key   TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
+
+-- marks: catalog titles a profile liked, wants to watch later or has seen,
+-- by TMDB id (the title need not be in the library). The title snapshot keeps
+-- the lists readable when TMDB cannot be reached.
+CREATE TABLE IF NOT EXISTS marks (
+  profile_id INTEGER NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  list       TEXT NOT NULL,              -- liked | later | watched
+  kind       TEXT NOT NULL,              -- movie | tv
+  tmdb_id    INTEGER NOT NULL,
+  title      TEXT NOT NULL DEFAULT '',
+  orig_title TEXT NOT NULL DEFAULT '',
+  year       INTEGER NOT NULL DEFAULT 0,
+  poster     TEXT NOT NULL DEFAULT '',
+  rating     INTEGER NOT NULL DEFAULT 0, -- the profile's own rating, 1–10 (Letterboxd half stars × 2)
+  source     TEXT NOT NULL DEFAULT '',   -- '' | letterboxd
+  added_at   INTEGER NOT NULL,
+  PRIMARY KEY (profile_id, list, kind, tmdb_id)
+);
+CREATE INDEX IF NOT EXISTS idx_marks_added ON marks(profile_id, list, added_at);
+
+-- lb_match remembers which TMDB film a Letterboxd name and year is (0: none),
+-- so a second import of the same export does not search again.
+CREATE TABLE IF NOT EXISTS lb_match (
+  name       TEXT NOT NULL,
+  year       INTEGER NOT NULL,
+  tmdb_id    INTEGER NOT NULL,
+  title      TEXT NOT NULL DEFAULT '',
+  orig_title TEXT NOT NULL DEFAULT '',
+  tmdb_year  INTEGER NOT NULL DEFAULT 0,
+  poster     TEXT NOT NULL DEFAULT '',
+  PRIMARY KEY (name, year)
+);
