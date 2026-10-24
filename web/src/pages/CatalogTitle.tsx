@@ -67,6 +67,9 @@ function Detail({ d }: { d: TitleResp }) {
 
   const shown = useMemo(() => (res?.results || []).filter((r) => !quality || r.quality === quality), [res, quality]);
   const best = shown.find((r) => r.best) || (shown[0] && shown[0].seeds > 0 ? shown[0] : undefined);
+  // Average bitrate a release needs: its size over the film's runtime. Series
+  // releases are often whole seasons, so the size says nothing about one episode.
+  const mbps = (size: number) => (show || !x.runtime || !size ? 0 : Math.max(1, Math.round((size * 8) / (x.runtime * 60) / 1e6)));
   // The first three releases, then the rest on demand; a new search or filter collapses the list again.
   const rows = all ? shown.slice(0, 60) : shown.slice(0, 3);
   useEffect(() => setAll(false), [res, quality]);
@@ -170,7 +173,10 @@ function Detail({ d }: { d: TitleResp }) {
                               <div className="sub">{[r.indexer, r.lang === 'rus' ? tr('русская озвучка', 'Russian audio') : '', r.date?.slice(0, 16)].filter(Boolean).join(' · ')}</div>
                             </td>
                             <td className="td">{r.quality || '—'}</td>
-                            <td className="td mono" style={{ fontSize: 'calc(12px * var(--fs))' }}>{fmtSize(r.size)}</td>
+                            <td className="td mono" style={{ fontSize: 'calc(12px * var(--fs))', whiteSpace: 'nowrap' }}>
+                              {fmtSize(r.size)}
+                              {mbps(r.size) > 0 && <div className="sub" title={tr('Средний поток: такая скорость нужна, чтобы смотреть без подгрузки', 'Average bitrate: the speed needed to watch without buffering')}>≈ {mbps(r.size)} {tr('Мбит/с', 'Mbit/s')}</div>}
+                            </td>
                             <td className="td mono" style={{ fontSize: 'calc(12px * var(--fs))', color: r.seeds < 3 ? 'var(--err-fg)' : undefined }}>{r.seeds}</td>
                             <td className="td" style={{ whiteSpace: 'nowrap' }}>
                               <button className="btn btn-r sm" style={{ height: 32, padding: '0 12px' }} disabled={!!busy} onClick={() => add(r, 'stream')}>{busy === r.link + 'stream' ? <span className="spin" /> : <PlayGlyph size={12} />}{tr('Смотреть', 'Watch')}</button>{' '}
